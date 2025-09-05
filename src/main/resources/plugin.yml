@@ -1,0 +1,8 @@
+main: com.ambercode.XRayDetector
+version: 1.0.0-SNAPSHOT
+name: XRayDetector
+author: AmberCode
+api-version: 1.13
+commands:
+  xraydetector:
+    description: 'Main command of XRayDetector plugin'
