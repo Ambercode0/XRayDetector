@@ -1,8 +1,11 @@
 package com.ambercode.listeners;
 
+import com.ambercode.XRayDetector;
 import com.ambercode.data.*;
+import com.ambercode.logging.FileLogger;
 import com.ambercode.manager.PlayerDataManager;
 import com.ambercode.utils.Utils;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -19,10 +22,14 @@ import java.util.UUID;
 
 public class BlockBreakEventListener implements Listener {
 
+    private final FileLogger fileLogger;
     private final PlayerDataManager playerDataManager;
+    private final XRayDetector xRayDetector;
 
-    public BlockBreakEventListener(PlayerDataManager playerDataManager) {
+    public BlockBreakEventListener(FileLogger fileLogger, PlayerDataManager playerDataManager, XRayDetector xRayDetector) {
+        this.fileLogger = fileLogger;
         this.playerDataManager = playerDataManager;
+        this.xRayDetector = xRayDetector;
     }
 
     @EventHandler()
@@ -56,6 +63,11 @@ public class BlockBreakEventListener implements Listener {
                 !Utils.isOre(block)) {
             return;
         }
+
+        fileLogger.addLogMessage(String.format("player %s mined relevant block of type %s at (%s,%d,%d,%d)",
+                player.getName(),
+                blockMaterial.name(),
+                blockLocation.getWorld().getName(), blockLocation.getBlockX(), blockLocation.getBlockY(), blockLocation.getBlockZ()));
 
         // Add block to miner's history
         miner.getMinedBlocks().add(block);
@@ -106,6 +118,11 @@ public class BlockBreakEventListener implements Listener {
             // First ore discovery
             OreVein firstVein = new OreVein(oreLocation, oreBlock.getType(), System.currentTimeMillis());
             discoveredVeins.add(firstVein);
+            fileLogger.addLogMessage(String.format("player %s discovered new vein of type %s at (%s,%d,%d,%d)",
+                    Bukkit.getPlayer(miner.getUuid()).getName(),
+                    oreBlock.getType().name(),
+                    oreLocation.getWorld().getName(), oreLocation.getBlockX(), oreLocation.getBlockY(), oreLocation.getBlockZ()));
+
             return;
         }
 
@@ -122,6 +139,10 @@ public class BlockBreakEventListener implements Listener {
             // New vein discovered
             currentVein = new OreVein(oreLocation, oreBlock.getType(), System.currentTimeMillis());
             discoveredVeins.add(currentVein);
+            fileLogger.addLogMessage(String.format("player %s discovered new vein of type %s at (%s,%d,%d,%d)",
+                    Bukkit.getPlayer(miner.getUuid()).getName(),
+                    oreBlock.getType().name(),
+                    oreLocation.getWorld().getName(), oreLocation.getBlockX(), oreLocation.getBlockY(), oreLocation.getBlockZ()));
 
             // Analyze path efficiency if this is not the first vein
             if (discoveredVeins.size() > 1) {
@@ -153,13 +174,6 @@ public class BlockBreakEventListener implements Listener {
 
         // Update suspicion score based on efficiency
         updateSuspicionScore(miner, efficiencyRatio, optimalDistance, actualPathLength);
-
-        // Log analysis for debugging
-        //System.out.println("Player " + miner.getUuid() +
-        //        " - Optimal: " + optimalDistance +
-        //        ", Actual: " + actualPathLength +
-        //        ", Efficiency: " + String.format("%.2f", efficiencyRatio) +
-        //        ", Suspicion: " + miner.getSuspicionScore());
     }
 
     private double calculateActualPathLength(Miner miner, OreVein fromVein, OreVein toVein) {
@@ -170,6 +184,7 @@ public class BlockBreakEventListener implements Listener {
         int endIndex = findBlockIndexNearLocation(minedBlocks, toVein.getCenterLocation());
 
         if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) {
+            fileLogger.addLogMessage(String.format("player %s has illegal path length (startIndex=%d, endIndex=%d)", Bukkit.getPlayer(miner.getUuid()).getName(), startIndex, endIndex));
             return Double.MAX_VALUE; // Invalid path
         }
 
@@ -211,7 +226,7 @@ public class BlockBreakEventListener implements Listener {
 
         // Bonus for longer optimal distances (harder to achieve by chance)
         if (optimalDistance > 10 && optimalDistance < 20) {
-            scoreIncrease *= 1.3;
+            scoreIncrease *= 1.25;
         } else if (optimalDistance >= 20) {
             scoreIncrease *= 1.5;
         }
@@ -220,6 +235,9 @@ public class BlockBreakEventListener implements Listener {
         if (actualPathLength - optimalDistance < 2.0 && optimalDistance > 5) {
             scoreIncrease += 10.0; // Very suspicious
         }
+
+        fileLogger.addLogMessage(String.format("player %s update suspicionScore (prev=%.2f,increase=%.2f,effRatio=%.2f,optimalDist=%.1f,actualPathLength=%.1f)",
+                Bukkit.getPlayer(miner.getUuid()).getName(), currentScore, scoreIncrease,efficiencyRatio, optimalDistance, actualPathLength));
 
         miner.setSuspicionScore(Math.min(100.0, currentScore + scoreIncrease));
     }
