@@ -1,23 +1,29 @@
 package com.ambercode.manager;
 
+import com.ambercode.XRayDetector;
 import com.ambercode.data.Miner;
-import com.ambercode.data.Tunnel;
+import com.ambercode.database.PluginDatabase;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class PlayerDataManager {
 
-    private final Map<UUID, Miner> minerMap = new HashMap<>();
-    private final Map<Miner, List<Tunnel>> minerTunnelMap = new HashMap<>();
+    private final XRayDetector plugin;
+    private final Set<Miner> miners = new HashSet<>();
 
-    public Map<UUID, Miner> getMinerMap() {
-        return minerMap;
+    public PlayerDataManager(@NotNull XRayDetector plugin) {
+        this.plugin = plugin;
     }
 
-    public Map<Miner, List<Tunnel>> getMinerTunnelMap() {
-        return minerTunnelMap;
+    public void loadCacheFromDatabase() {
+        PluginDatabase db = plugin.getPluginDatabase();
+        List<Miner> miners = db.getAllData();
+        plugin.getLogger().info(String.format("Loaded %d miners from the database.",  miners.size()));
+        this.miners.addAll(miners);
+    }
+
+    public Set<Miner> getMiners() {
+        return miners;
     }
 }

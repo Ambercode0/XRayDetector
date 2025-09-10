@@ -1,0 +1,14 @@
+#
+# XRay Detector
+# v1.0.0-snapshot
+logger: true
+debug: true
+
+database:
+  crash-shutdown: true # shutdown the server if databases is down.
+  type: 'SQLITE'
+  username: 'root'
+  password: 'password'
+  address: '127.0.0.1'
+  db_name: 'minecraft'
+  port: 3306

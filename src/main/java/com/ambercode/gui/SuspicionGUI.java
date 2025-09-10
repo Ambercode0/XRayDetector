@@ -232,12 +232,8 @@ public class SuspicionGUI {
     }
 
     private void updatePlayerCache() {
-        Map<UUID, Miner> minerMap = playerDataManager.getMinerMap();
-
-        for (Map.Entry<UUID, Miner> entry : minerMap.entrySet()) {
-            UUID uuid = entry.getKey();
-            Miner miner = entry.getValue();
-
+        for (Miner miner : playerDataManager.getMiners()) {
+            UUID uuid = miner.getUuid();
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
             String playerName = offlinePlayer.getName();
             if (playerName == null) playerName = "Unknown";
@@ -246,9 +242,6 @@ public class SuspicionGUI {
             cachedData.playerUUID = uuid;
             cachedData.playerName = playerName;
             cachedData.suspicionScore = miner.getSuspicionScore();
-            cachedData.oreVeinsFound = miner.getDiscoveredOreVeins().size();
-            cachedData.miningSessions = calculateMiningSessions(miner);
-            cachedData.avgPathEfficiency = calculateAverageEfficiency(miner);
             cachedData.lastSeen = offlinePlayer.getLastPlayed();
             cachedData.lastUpdated = System.currentTimeMillis();
 
@@ -260,26 +253,6 @@ public class SuspicionGUI {
 
             playerCache.put(uuid, cachedData);
         }
-    }
-
-    private int calculateMiningSessions(Miner miner) {
-        // Simple estimation based on time gaps between mining activities
-        if (miner.getMinedBlocks().isEmpty()) return 0;
-
-        // This is a simplified calculation - you could make it more sophisticated
-        return Math.max(1, miner.getDiscoveredOreVeins().size() / 3);
-    }
-
-    private double calculateAverageEfficiency(Miner miner) {
-        // Calculate based on path analysis - simplified for now
-        if (miner.getDiscoveredOreVeins().size() < 2) return -1;
-
-        // This would need more complex calculation based on actual path data
-        // For now, return a placeholder based on suspicion score
-        double suspicion = miner.getSuspicionScore();
-        if (suspicion > 70) return 85.0 + (suspicion - 70) * 0.5;
-        if (suspicion > 40) return 60.0 + (suspicion - 40) * 0.8;
-        return 40.0 + suspicion * 0.5;
     }
 
     public GUISession getSession(UUID playerUUID) {

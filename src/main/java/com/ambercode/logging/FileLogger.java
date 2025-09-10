@@ -1,6 +1,8 @@
 package com.ambercode.logging;
 
 import com.ambercode.XRayDetector;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -17,14 +19,15 @@ public class FileLogger {
     private final XRayDetector xRayDetector;
     private final ArrayList<String> logLines;
     private final ReentrantLock lock;
-    private boolean enabled = false;
+    private boolean enabled;
     private static final SimpleDateFormat FILE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
     private static final SimpleDateFormat LOG_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public FileLogger(XRayDetector xRayDetector) {
+    public FileLogger(@NotNull XRayDetector xRayDetector) {
         this.xRayDetector = xRayDetector;
         this.logLines = new ArrayList<>();
         this.lock = new ReentrantLock();
+        this.enabled = xRayDetector.getStandardConfig().isLoggerEnabled();
     }
 
     public boolean isEnabled() {
@@ -39,14 +42,14 @@ public class FileLogger {
      * Adds a log message to the buffer with timestamp
      * @param message The log message to add
      */
-    public void addLogMessage(String message) {
+    public void addLogMessage(@NotNull String message) {
         if (!enabled) return;
 
         lock.lock();
         try {
-            final String timestampedMessage = String.format("[%s] %s",
-                    LOG_DATE_FORMAT.format(new Date()), message);
+            final String timestampedMessage = String.format("[%s] %s", LOG_DATE_FORMAT.format(new Date()), message);
             logLines.add(timestampedMessage);
+            if (xRayDetector.getStandardConfig().isDebugEnabled()) {xRayDetector.getLogger().info(timestampedMessage);}
         } finally {
             lock.unlock();
         }
@@ -56,7 +59,7 @@ public class FileLogger {
      * Adds multiple log messages to the buffer
      * @param messages List of messages to add
      */
-    public void addLogMessages(List<String> messages) {
+    public void addLogMessages(@NotNull List<String> messages) {
         if (!enabled || messages == null || messages.isEmpty()) return;
 
         lock.lock();
@@ -83,7 +86,7 @@ public class FileLogger {
             File pluginFolder = xRayDetector.getDataFolder();
             File logsFolder = new File(pluginFolder, "logs");
             if (!logsFolder.exists() && !logsFolder.mkdir()) {
-                System.err.println("Failed to create logs directory: " + logsFolder.getAbsolutePath());
+                xRayDetector.getLogger().info("Failed to create logs directory: " + logsFolder.getAbsolutePath());
                 return false;
             }
 
@@ -97,7 +100,7 @@ public class FileLogger {
                 }
                 writer.flush();
 
-                System.out.println("Successfully wrote " + logLines.size() +
+                xRayDetector.getLogger().info("Successfully wrote " + logLines.size() +
                         " log lines to: " + logFile.getAbsolutePath());
 
                 // Clear the buffer after successful write
@@ -105,7 +108,7 @@ public class FileLogger {
                 return true;
 
             } catch (IOException e) {
-                System.err.println("Error writing log file: " + e.getMessage());
+                xRayDetector.getLogger().warning("Error writing log file: " + e.getMessage());
                 return false;
             }
         } finally {
@@ -155,6 +158,7 @@ public class FileLogger {
      * Gets a copy of the current log buffer (thread-safe)
      * @return List containing all buffered log messages
      */
+    @Nullable
     public List<String> getLogBufferCopy() {
         lock.lock();
         try {
@@ -168,6 +172,7 @@ public class FileLogger {
      * Writes logs to file and returns the file path if successful
      * @return File path of the created log file, or null if failed
      */
+    @Nullable
     public String writeLogsAndGetPath() {
         if (writeLogsToFile()) {
             File pluginFolder = xRayDetector.getDataFolder();
@@ -175,6 +180,7 @@ public class FileLogger {
             String fileName = "xray_log_" + FILE_DATE_FORMAT.format(new Date()) + ".txt";
             return new File(logsFolder, fileName).getAbsolutePath();
         }
+
         return null;
     }
 }

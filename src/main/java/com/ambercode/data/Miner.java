@@ -1,42 +1,41 @@
 // Enhanced Miner class
 package com.ambercode.data;
 
-import org.bukkit.block.Block;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class Miner {
-    private final List<Block> minedBlocks = new ArrayList<>();
-    private final List<OreVein> discoveredOreVeins = new ArrayList<>();
-    private final UUID uuid;
-    private double suspicionScore = 0.0;
 
-    public Miner(UUID uuid) {
+    private final UUID uuid;
+    private final List<TunnelStructure> createdTunnels = new ArrayList<>();
+    private final double suspicionScore = 0.00;
+
+    public Miner(@NotNull UUID uuid) {
         this.uuid = uuid;
     }
 
+    @NotNull
     public UUID getUuid() {
         return uuid;
     }
 
-    public List<Block> getMinedBlocks() {
-        return minedBlocks;
-    }
-
-    public List<OreVein> getDiscoveredOreVeins() {
-        return discoveredOreVeins;
+    @NotNull
+    public List<TunnelStructure> getCreatedTunnels() {
+        return createdTunnels;
     }
 
     public double getSuspicionScore() {
         return suspicionScore;
     }
 
-    public void setSuspicionScore(double suspicionScore) {
-        this.suspicionScore = suspicionScore;
+    public int getDiscoveredOreVeins() {
+        return +0;
     }
 
-    public void addSuspicionScore(double points) {
-        this.suspicionScore = Math.min(100.0, this.suspicionScore + points);
+    public int getMinedBlocks() {
+        return +0;
     }
 }

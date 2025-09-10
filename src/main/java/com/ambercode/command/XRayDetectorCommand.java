@@ -1,7 +1,13 @@
 package com.ambercode.command;
 
+import com.ambercode.data.Miner;
+import com.ambercode.data.TunnelStructure;
+import com.ambercode.data.TunnelUnit;
 import com.ambercode.gui.SuspicionGUI;
 import com.ambercode.manager.PlayerDataManager;
+import com.ambercode.utils.TunnelPathFinder;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -71,6 +77,9 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
 
             suspicionGUI.openGUI(player, page, sortType, showOnlySuspicious);
             return true;
+        } else if (args[0].equalsIgnoreCase("view")) {
+            // highlightOptimisedPath(player);
+            return true;
         }
 
         sendUsage(player);
@@ -80,7 +89,7 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("list");
+            return List.of("list");
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("list")) {
@@ -107,5 +116,21 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§7  sort: §fsuspicion §7or §fname §7(default: suspicion)");
         player.sendMessage("§7  filter: §fall §7or §fsuspicious §7(default: all)");
         player.sendMessage("§7§m─────────────────────────────────────");
+    }
+
+    private void highlightOptimisedPath(Player player) {
+        Miner miner = playerDataManager.getMiners().stream().filter(m -> m.getUuid().equals(player.getUniqueId())).findFirst().orElse(null);
+
+        if (miner == null) {
+            player.sendMessage("You have not Mined anything!");
+            return;
+        }
+
+        for (TunnelStructure createdTunnel : miner.getCreatedTunnels()) {
+            List<TunnelUnit> units = TunnelPathFinder.findLongestPath(createdTunnel.getMainTunnelPath().getUnits());
+            for (TunnelUnit unit : units) {
+                player.spawnParticle(Particle.END_ROD, new Location(player.getWorld(), unit.getX()+.5f, player.getY()+.25f, unit.getZ()+.5f),0);
+            }
+        }
     }
 }
