@@ -15,29 +15,29 @@ The plugin continuously monitors tunnels, block mining patterns, and ore discove
 
 ---
 
-## ✨ Features
+## Features
 
-- 🔍 **Advanced X-Ray Analysis**  
+-  **Advanced X-Ray Analysis**  
   Tracks tunnels, blocks dug, ore found, and mining patterns for all players.
 
-- 🖼️ **In-Game GUI Visualizer**  
+-  **In-Game GUI Visualizer**  
   Easily view collected player data, including:
   - Suspicion scores  
   - Total ores found  
   - Block mining structures  
 
-- 🌐 **External Web Visualizer**  
+- **External Web Visualizer**  
   Export and view a **top-down visualization of tunnels** across the server.  
   Perfect for administrators who want a **comprehensive overview**.
 
 - ⚡ **Database Support**  
-  - ✅ **SQLite** (currently supported)  
+  - **SQLite** (currently supported)  
   - 🔜 **MySQL** (coming soon)
 
-- 🛡️ **Ban-Wave System (Planned)**  
+- **Ban-Wave System (Planned)**  
   Intelligent banning system with **≥99% accuracy** to ensure fair and reliable punishments.
 
-- 📜 **Open Source**  
+- **Open Source**  
   Licensed under **GPLv3**.  
   Official compiled distributions are available **only** on:
   - [SpigotMC](https://www.spigotmc.org/)  
@@ -48,7 +48,7 @@ The plugin continuously monitors tunnels, block mining patterns, and ore discove
 
 ---
 
-## 🚀 Installation
+## Installation
 
 1. Download the latest official release from:
    - [SpigotMC](https://www.spigotmc.org/)  
@@ -61,7 +61,7 @@ The plugin continuously monitors tunnels, block mining patterns, and ore discove
 
 ---
 
-## 💻 Usage
+## Usage
 
 - **Main Command:**  
 ```
@@ -73,7 +73,7 @@ Displays a detailed GUI with all collected data.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Platform:** PaperMC  
 - **Language:** Java 21  
@@ -81,7 +81,7 @@ Displays a detailed GUI with all collected data.
 
 ---
 
-## 🎯 Milestones
+## Milestones
 
 - [x] Basic tunnel and ore mining tracking  
 - [x] Suspicion score system  
@@ -93,14 +93,14 @@ Displays a detailed GUI with all collected data.
 
 ---
 
-## 📖 License
+## License
 
 This project is licensed under the **GNU General Public License v3.0**.  
 See [LICENSE](LICENSE) for details.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome!  
 Please fork the repository, make your changes, and submit a pull request.
