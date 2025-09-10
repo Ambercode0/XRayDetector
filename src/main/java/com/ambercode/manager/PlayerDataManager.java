@@ -2,8 +2,10 @@ package com.ambercode.manager;
 
 import com.ambercode.XRayDetector;
 import com.ambercode.data.Miner;
+import com.ambercode.data.TunnelStructure;
 import com.ambercode.database.PluginDatabase;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -21,6 +23,22 @@ public class PlayerDataManager {
         List<Miner> miners = db.getAllData();
         plugin.getLogger().info(String.format("Loaded %d miners from the database.",  miners.size()));
         this.miners.addAll(miners);
+    }
+
+    @Nullable
+    public Miner getMiner(UUID uuid) {
+        return miners.stream().filter(miner -> miner.getUuid().equals(uuid)).findFirst().orElse(null);
+    }
+
+    @Nullable
+    public TunnelStructure getTunnelStructure(UUID uuid) {
+        for (Miner miner : miners) {
+            TunnelStructure tunnelStructure = miner.getTunnelStructure(uuid);
+            if (tunnelStructure != null) {
+                return tunnelStructure;
+            }
+        }
+        return null;
     }
 
     public Set<Miner> getMiners() {

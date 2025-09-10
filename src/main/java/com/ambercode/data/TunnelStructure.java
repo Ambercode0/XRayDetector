@@ -2,6 +2,7 @@ package com.ambercode.data;
 
 import com.ambercode.utils.Utils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +33,11 @@ public class TunnelStructure {
 
     public boolean isContained(@NotNull TunnelUnit tunnelUnit) {
         return this.mainTunnelPath.getUnits().stream().anyMatch(tunnelUnit::equals);
+    }
+
+    @Nullable
+    public TunnelUnit getContained(@NotNull TunnelUnit tunnelUnit) {
+        return this.mainTunnelPath.getUnits().stream().filter(tunnelUnit::equals).findAny().get();
     }
 
     public boolean isAdjacent(@NotNull TunnelUnit tunnelUnit) {

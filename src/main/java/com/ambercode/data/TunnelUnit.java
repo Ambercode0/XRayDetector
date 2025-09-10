@@ -10,7 +10,7 @@ import java.util.*;
 public class TunnelUnit {
 
     private final int x,z;
-    private final Material material;
+    private Material material;
     private final long minedAt;
     private boolean exposedToAir;
 
@@ -24,6 +24,10 @@ public class TunnelUnit {
     @NotNull
     public Material getMaterial() {
         return material;
+    }
+
+    public void setMaterial(@NotNull Material material) {
+        this.material = material;
     }
 
     public int getX() {

@@ -43,6 +43,10 @@ public final class Utils {
         return material == Material.DIAMOND_ORE || material == Material.DEEPSLATE_DIAMOND_ORE || material == Material.EMERALD_ORE || material == Material.DEEPSLATE_EMERALD_ORE || material == Material.ANCIENT_DEBRIS;
     }
 
+    public static boolean isOre(TunnelUnit unit) {
+        return isOre(unit.getMaterial());
+    }
+
     public static final BlockFace[] ADJACENT_DIRECTIONS = new BlockFace[]{
             BlockFace.DOWN, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP
     };

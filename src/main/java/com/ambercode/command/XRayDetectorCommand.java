@@ -23,9 +23,9 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
     private final PlayerDataManager playerDataManager;
     private final SuspicionGUI suspicionGUI;
 
-    public XRayDetectorCommand(PlayerDataManager playerDataManager) {
+    public XRayDetectorCommand(PlayerDataManager playerDataManager, SuspicionGUI suspicionGUI) {
         this.playerDataManager = playerDataManager;
-        this.suspicionGUI = new SuspicionGUI(playerDataManager);
+        this.suspicionGUI = suspicionGUI;
     }
 
     @Override

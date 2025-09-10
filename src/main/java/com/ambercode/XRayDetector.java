@@ -21,6 +21,7 @@ public class XRayDetector extends JavaPlugin {
     private FileLogger fileLogger = null;
     private StandardConfig standardConfig = null;
     private PluginDatabase pluginDatabase = null;
+    private SuspicionGUI suspicionGUI = null;
 
 
     @Override
@@ -34,8 +35,8 @@ public class XRayDetector extends JavaPlugin {
         setupFileLogger();
         setupDatabase();
         setupPlayerDataManager();
-        setupCommands();
         setupListeners();
+        setupCommands();
     }
 
     private void setupDatabase() {
@@ -74,14 +75,15 @@ public class XRayDetector extends JavaPlugin {
     }
 
     private void setupCommands() {
-        XRayDetectorCommand xRayDetectorCommand = new XRayDetectorCommand(playerDataManager);
+        XRayDetectorCommand xRayDetectorCommand = new XRayDetectorCommand(playerDataManager, suspicionGUI);
         Objects.requireNonNull(getCommand("xraydetector")).setExecutor(xRayDetectorCommand);
         Objects.requireNonNull(getCommand("xraydetector")).setTabCompleter(xRayDetectorCommand);
     }
 
     private void setupListeners() {
         getServer().getPluginManager().registerEvents(new TunnelTrackingListener(fileLogger, playerDataManager, this), this);
-        getServer().getPluginManager().registerEvents(new GUIEventListener(new SuspicionGUI(playerDataManager)), this);
+        suspicionGUI = new SuspicionGUI(playerDataManager, this);
+        getServer().getPluginManager().registerEvents(new GUIEventListener(suspicionGUI, fileLogger), this);
     }
 
     @Override
@@ -105,5 +107,9 @@ public class XRayDetector extends JavaPlugin {
 
     public FileLogger getFileLogger() {
         return fileLogger;
+    }
+
+    public SuspicionGUI getSuspicionGUI() {
+        return suspicionGUI;
     }
 }

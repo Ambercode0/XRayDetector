@@ -67,6 +67,16 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
             // found a structure with the unit in its path; ignore.
             if (tunnelStructure.isContained(tunnelUnit)) {
                 fileLogger.addLogMessage(String.format("player %s mined block in pre-existing unit [%d, %d] of structure (%s)", playerName, blockLocation.getBlockX(), blockLocation.getBlockZ(), tunnelStructure.getUuid()));
+                // checking if there's ore above/below, if positive updating tunnelUnit material to that ore.
+                // this avoids bypassing diamond detection by first mining a block above/below to it.
+
+                if (Utils.isOre(blockMaterial)) {
+                    TunnelUnit toAlter = tunnelStructure.getContained(tunnelUnit);
+                    assert toAlter != null;
+                    toAlter.setMaterial(blockMaterial); // updating the unit to new ore material. This won't be changed again.
+                                                        // meaning once a unit is ore, it cannot change to non-ore.
+                }
+
                 return;
             }
         }

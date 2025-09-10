@@ -2,6 +2,7 @@
 package com.ambercode.data;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,11 @@ public class Miner {
 
     public Miner(@NotNull UUID uuid) {
         this.uuid = uuid;
+    }
+
+    @Nullable
+    public TunnelStructure getTunnelStructure(@NotNull UUID uuid) {
+        return  createdTunnels.stream().filter(t -> t.getUuid().equals(uuid)).findAny().orElse(null);
     }
 
     @NotNull
