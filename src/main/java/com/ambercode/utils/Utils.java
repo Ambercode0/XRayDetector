@@ -46,15 +46,17 @@ public final class Utils {
     }
 
     /**
-     * Computes the Manhattan distance between two locations (sum of absolute differences
-     * of coordinates). This represents the distance when you can only move along lines
-     * parallel to the coordinate axes, like navigating city blocks.
-     * @param a The first location
-     * @param b The second location
-     * @return the Manhattan distance between the two locations
+     * Calculates the Manhattan distance between two TunnelUnits on a 2D plane.
+     * The Manhattan distance is the sum of the absolute differences of their X and Z coordinates.
+     * If the TunnelUnits are in different worlds, the method returns -1.
+     *
+     * @param a The first TunnelUnit, representing a specific location in the tunnel system.
+     * @param b The second TunnelUnit, representing another location in the tunnel system.
+     * @return the Manhattan distance between the two TunnelUnits if they are in the same world,
+     *         otherwise -1.
      */
     public static int manhattanDistance2D(TunnelUnit a, TunnelUnit b) {
-        return Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ());
+        return a.getWorldName().equals(b.getWorldName()) ? Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ()) : -1;
     }
 
     /**

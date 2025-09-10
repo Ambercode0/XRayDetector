@@ -38,12 +38,14 @@ public class TunnelUnit {
     private Material material;
     private final long minedAt;
     private boolean exposedToAir;
+    private final String worldName;
 
-    public TunnelUnit(int x, int z, @NotNull Material material, long minedAt) {
+    public TunnelUnit(int x, int z, @NotNull Material material, long minedAt, @NotNull String worldName) {
         this.x = x;
         this.z = z;
         this.material = material;
         this.minedAt = minedAt;
+        this.worldName = worldName;
     }
 
     /**
@@ -103,7 +105,7 @@ public class TunnelUnit {
 
     /**
      * Sets whether this TunnelUnit is exposed to air. This can be used to mark blocks
-     * that are directly accessible from air or other open spaces.
+     * that are directly accessible from the air or other open spaces.
      *
      * @param exposedToAir true if the TunnelUnit is exposed to air, false otherwise.
      */
@@ -128,9 +130,9 @@ public class TunnelUnit {
      * @return true if the specified object is equal to this TunnelUnit; false otherwise.
      */
     @Override
-    public boolean equals(@NotNull Object o) {
+    public boolean equals(@NotNull final Object o) {
         if (!(o instanceof final TunnelUnit that)) return false;
-        return x == that.x && z == that.z;
+        return x == that.x && z == that.z && that.getWorldName().equals(worldName);
     }
 
     /**
@@ -154,4 +156,13 @@ public class TunnelUnit {
         return Utils.manhattanDistance2D(this, unit) == 1;
     }
 
+    /**
+     * Retrieves the name of the world associated with this TunnelUnit.
+     *
+     * @return the name of the world as a non-null string.
+     */
+    @NotNull
+    public String getWorldName() {
+        return worldName;
+    }
 }

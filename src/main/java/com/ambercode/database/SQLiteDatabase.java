@@ -121,6 +121,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
          * - z: The z-coordinate of the unit within the tunnel path.
          * - material: The material type of the unit.
          * - exposed: A boolean indicating if the unit is exposed.
+         * - world_name: The name of the world the unit is located in.
          * - mined_at: A timestamp (epoch milliseconds) representing when the unit was mined.
          * - created_at: The date and time when the unit entry was created (timestamp, defaults to the current time).
          * <p>
@@ -138,6 +139,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                 z INTEGER NOT NULL,
                 material TEXT NOT NULL,
                 exposed BOOLEAN NOT NULL,
+                world_name TEXT NOT NULL,
                 mined_at BIGINT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (path_uuid) REFERENCES tunnel_paths(uuid) ON DELETE CASCADE,
@@ -167,6 +169,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_position ON tunnel_units(x, z);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_material ON tunnel_units(material);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_exposed ON tunnel_units(exposed);
+            CREATE INDEX IF NOT EXISTS idx_tunnel_units_world_name ON tunnel_units(world_name);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_mined_at ON tunnel_units(mined_at);
             """;
 
@@ -215,6 +218,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                 tu.z as unit_z,
                 tu.material as unit_material,
                 tu.exposed as unit_exposed,
+                tu.world_name as unit_world_name,
                 tu.mined_at as unit_mined_at,
                 tu.created_at as unit_created_at
               \s
@@ -233,6 +237,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
          * - `z`: The z-coordinate of the tunnel unit.
          * - `material`: The material type of the tunnel unit.
          * - `exposed`: Whether the unit is exposed or not.
+         * - `world_name`: The name of the world the unit is located in.
          * - `mined_at`: The timestamp when the unit was mined.
          * - `created_at`: The timestamp when the record was created (set to the current timestamp).
          * <p>
@@ -240,8 +245,8 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
          * prevent SQL injection and ensure efficient database interaction.
          */
         private static final String INSERT_UNIT = """
-            INSERT INTO tunnel_units (path_uuid, x, z, material, exposed, mined_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
+            INSERT INTO tunnel_units (path_uuid, x, z, material, exposed, world_name ,mined_at, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
             """;
 
         /**
@@ -423,11 +428,12 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                                 int z = rs.getInt("unit_z");
                                 String materialStr = rs.getString("unit_material");
                                 boolean exposed = rs.getBoolean("unit_exposed");
+                                String worldName = rs.getString("unit_world_name");
                                 long minedAt = rs.getLong("unit_mined_at");
 
                                 Material material = Material.getMaterial(materialStr);
                                 if (material != null) {
-                                    TunnelUnit unit = new TunnelUnit(x, z, material, minedAt);
+                                    TunnelUnit unit = new TunnelUnit(x, z, material, minedAt, worldName);
                                     unit.setExposedToAir(exposed);
 
                                     if (!path.getUnits().contains(unit)) {
@@ -461,7 +467,8 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                 ps.setInt(3, tunnelUnit.getZ());
                 ps.setString(4, tunnelUnit.getMaterial().toString());
                 ps.setBoolean(5, tunnelUnit.isExposedToAir());
-                ps.setLong(6, tunnelUnit.getMinedAt());
+                ps.setString(6, tunnelUnit.getWorldName());
+                ps.setLong(7, tunnelUnit.getMinedAt());
                 ps.executeUpdate();
             } catch (SQLException exception) {
                 logError(methodName, "Error inserting tunnel unit", exception);
@@ -568,7 +575,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
             )
             """, inClausePlaceholders);
 
-            String insertNewUnitSql = "INSERT INTO tunnel_units (path_uuid, x, z, material, exposed, mined_at, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+            String insertNewUnitSql = "INSERT INTO tunnel_units (path_uuid, x, z, material, exposed, world_name, mined_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
             String deletePathsSql = String.format("DELETE FROM tunnel_paths WHERE structure_uuid IN (%s)", inClausePlaceholders);
             String deleteStructuresSql = String.format("DELETE FROM tunnel_structures WHERE uuid IN (%s)", inClausePlaceholders);
 
@@ -608,7 +615,8 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                     stmt.setInt(3, newTunnelUnit.getZ());
                     stmt.setString(4, newTunnelUnit.getMaterial().toString());
                     stmt.setBoolean(5, newTunnelUnit.isExposedToAir());
-                    stmt.setLong(6, newTunnelUnit.getMinedAt());
+                    stmt.setString(6, newTunnelUnit.getWorldName());
+                    stmt.setLong(7, newTunnelUnit.getMinedAt());
                     stmt.executeUpdate();
                 }
 

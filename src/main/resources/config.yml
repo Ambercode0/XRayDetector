@@ -1,12 +1,12 @@
 #
 # XRay Detector
 # v1.0.0-snapshot
-logger: true
-debug: true
+logger: true # Save logs into a file.
+debug: false # only enable for developing: this will spam the console.
 
 database:
-  crash-shutdown: true # shutdown the server if databases is down.
-  type: 'SQLITE'
+  crash-shutdown: true # shutdown the server if databases are down.
+  type: 'SQLITE' #SQLITE or MYSQL (coming soon)
   username: 'root'
   password: 'password'
   address: '127.0.0.1'

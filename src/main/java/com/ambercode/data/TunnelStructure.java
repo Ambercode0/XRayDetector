@@ -93,7 +93,7 @@ public class TunnelStructure {
      * the X and Z coordinates of the TunnelUnit.
      *
      * @param tunnelUnit the TunnelUnit to search for within the main tunnel path; must not be null.
-     * @return the TunnelUnit from the main tunnel path that matches the provided TunnelUnit, or null if no match is found.
+     * @return the TunnelUnit from the main tunnel path, which matches the provided TunnelUnit, or null if no match is found.
      */
     @Nullable
     public TunnelUnit getContained(@NotNull TunnelUnit tunnelUnit) {
@@ -110,7 +110,7 @@ public class TunnelStructure {
      *         in the main tunnel path, false otherwise.
      */
     public boolean isAdjacent(@NotNull TunnelUnit tunnelUnit) {
-        return this.mainTunnelPath.getUnits().stream().anyMatch(v -> Utils.manhattanDistance2D(v,tunnelUnit) == 1);
+        return this.mainTunnelPath.getUnits().stream().anyMatch(v -> Utils.manhattanDistance2D(v, tunnelUnit) == 1);
     }
 
     /**

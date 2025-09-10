@@ -60,6 +60,13 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         Location blockLocation = block.getLocation();
         Material blockMaterial = block.getType();
 
+        World.Environment worldEnvironment = blockLocation.getWorld().getEnvironment();
+        if (worldEnvironment != World.Environment.NORMAL && worldEnvironment != World.Environment.NETHER)
+            return; // ignore non-normal worlds and end dimensions.
+
+        if (isInvalidDiamondLocation(blockLocation) || isInvalidNetheriteLocation(blockLocation))
+            return; // ignore impossible to find ores in this range.
+
         Miner miner = null;
         Optional<Miner> optionalMiner = playerDataManager.getMiners().stream().filter(m -> m.getUuid().equals(uuid)).findAny();
         if (optionalMiner.isPresent()) {
@@ -69,19 +76,18 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
             db.insertMiner(miner);
         }
 
-        if (isValidDiamondLocation(blockLocation) || isValidNetheriteLocation(blockLocation)) // ignore impossible to find ores in this range
-            return;
-
         List<TunnelStructure> minerTunnelStructures = miner.getCreatedTunnels();
 
-        TunnelUnit tunnelUnit = new TunnelUnit(blockLocation.getBlockX(), blockLocation.getBlockZ(), blockMaterial, System.currentTimeMillis());
+        TunnelUnit tunnelUnit = new TunnelUnit(blockLocation.getBlockX(), blockLocation.getBlockZ(), blockMaterial,
+                System.currentTimeMillis(), blockLocation.getWorld().getName());
 
         if (minerTunnelStructures.isEmpty()) { // logic: no structures present, creating FIRST new one, setting unit as path origin and main path
             TunnelStructure firstTunnel = new TunnelStructure(tunnelUnit);
             boolean exposedToAir = Utils.isExposedToAir(tunnelUnit, null, block);
             tunnelUnit.setExposedToAir(exposedToAir);
             minerTunnelStructures.add(firstTunnel);
-            fileLogger.addLogMessage(String.format("player %s created new first structure (%s) at [%d, %d] exposed=%b", playerName, firstTunnel.getUuid(), blockLocation.getBlockX(), blockLocation.getBlockZ(), exposedToAir));
+            fileLogger.addLogMessage(String.format("player %s created new first structure (%s) at [%d, %d] exposed=%b",
+                    playerName, firstTunnel.getUuid(), blockLocation.getBlockX(), blockLocation.getBlockZ(), exposedToAir));
 
             db.insertTunnelStructure(firstTunnel, miner);
             db.insertTunnelPath(firstTunnel.getMainTunnelPath(), firstTunnel);
@@ -94,7 +100,8 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         for (TunnelStructure tunnelStructure : minerTunnelStructures) {
             // found a structure with the unit in its path; ignore.
             if (tunnelStructure.isContained(tunnelUnit)) {
-                fileLogger.addLogMessage(String.format("player %s mined block in pre-existing unit [%d, %d] of structure (%s)", playerName, blockLocation.getBlockX(), blockLocation.getBlockZ(), tunnelStructure.getUuid()));
+                fileLogger.addLogMessage(String.format("player %s mined block in pre-existing unit [%d, %d] of structure (%s)",
+                        playerName, blockLocation.getBlockX(), blockLocation.getBlockZ(), tunnelStructure.getUuid()));
                 // checking if there's ore above/below, if positive updating tunnelUnit material to that ore.
                 // this avoids bypassing diamond detection by first mining a block above/below to it.
 
@@ -139,8 +146,7 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
             tunnelUnit.setExposedToAir(exposedToAir);
             fileLogger.addLogMessage(String.format("player %s extended existing structure (%s) at [%d, %d] exposed=%b", playerName, adjacentStructures[0].getUuid(), blockLocation.getBlockX(), blockLocation.getBlockZ(), exposedToAir));
 
-            db.insertTunnelUnit(tunnelUnit, adjacentStructures[0].getMainTunnelPath()); // TODO: fix FOREIGNKEY crash
-
+            db.insertTunnelUnit(tunnelUnit, adjacentStructures[0].getMainTunnelPath());
             return;
         }
 
@@ -163,29 +169,31 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         List<TunnelStructure> nonNullStructures = new ArrayList<>(Arrays.asList(adjacentStructures).subList(0, adjacentToUniqueStructuresCount));
         db.mergeStructures(miner.getUuid(), mergedStructure, tunnelUnit, nonNullStructures);
 
-        fileLogger.addLogMessage(String.format("player %s merged %d structures (%s) at [%d, %d] into new structure %s exposed=%b", playerName,adjacentToUniqueStructuresCount , uuidsList, blockLocation.getBlockX(), blockLocation.getBlockZ(), mergedStructure.getUuid(), exposedToAir));
+        fileLogger.addLogMessage(String.format("player %s merged %d structures (%s) at [%d, %d] into new structure %s exposed=%b",
+                playerName,adjacentToUniqueStructuresCount , uuidsList, blockLocation.getBlockX(),
+                blockLocation.getBlockZ(), mergedStructure.getUuid(), exposedToAir));
     }
 
     /**
-     * Determines whether the specified block location is a valid diamond location.
+     * Determines whether the specified block location is an invalid diamond location.
      * A valid diamond location is within the NORMAL world environment and exists
      * either below Y-level -64 or above Y-level 16.
      *
      * @param blockLocation the location of the block to be validated, must not be null
      * @return true if the block location is valid for diamond spawning, false otherwise
      */
-    private boolean isValidDiamondLocation(@NotNull Location blockLocation) {
+    private boolean isInvalidDiamondLocation(@NotNull Location blockLocation) {
         return Objects.requireNonNull(blockLocation.getWorld()).getEnvironment() == World.Environment.NORMAL && (blockLocation.getBlockY() < -64 || blockLocation.getBlockY() > 16);
     }
 
     /**
-     * Checks if the given location is a valid location for finding netherite in the Nether dimension.
+     * Checks if the given location is an invalid location for finding netherite in the Nether dimension.
      *
      * @param blockLocation the location to evaluate; must not be null.
      * @return true if the location is in the Nether environment and the Y-coordinate
      *         is less than 13 or greater than 119; false otherwise.
      */
-    private boolean isValidNetheriteLocation(@NotNull Location blockLocation) {
+    private boolean isInvalidNetheriteLocation(@NotNull Location blockLocation) {
         return Objects.requireNonNull(blockLocation.getWorld()).getEnvironment() == World.Environment.NETHER && (blockLocation.getBlockY() < 13 || blockLocation.getBlockY() > 119);
     }
 }

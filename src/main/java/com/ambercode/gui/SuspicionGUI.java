@@ -315,16 +315,18 @@ public class SuspicionGUI {
                 double length = structure.getMainTunnelPath().getUnits().size();
                 long createdAt = structure.getMainTunnelPath().getUnits().getFirst().getMinedAt();
 
-                ItemStack item = new ItemStack(Material.STONE);
+                TunnelUnit tempUnit = structure.getMainTunnelPath().getUnits().getFirst();
+                ItemStack item = tempUnit.getWorldName().contains("nether") ? new ItemStack(Material.NETHERRACK) : new ItemStack(Material.STONE);
                 ItemMeta meta = item.getItemMeta();
                 meta.setDisplayName("§6Structure §f" + uuid);
 
                 List<String> lore = new ArrayList<>();
-                lore.add("§7UUID: §f" + uuid);
-                lore.add("§7Total Blocks: §f" + totalBlocks);
-                lore.add("§7Total Ores: §f" + totalOres);
-                lore.add("§7Length: §f" + String.format("%.1f", length));
-                lore.add("§7Created: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
+                lore.add("§bUUID: §f" + uuid);
+                lore.add("§bWorld: §f" + tempUnit.getWorldName());
+                lore.add("§bTotal Blocks: §f" + totalBlocks);
+                lore.add("§bTotal Ores: §f" + totalOres);
+                lore.add("§bLength: §f" + String.format("%.1f", length));
+                lore.add("§bCreated: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
                 lore.add("");
                 lore.add("§eClick to view tunnel units");
 
@@ -380,11 +382,11 @@ public class SuspicionGUI {
                 meta.setDisplayName("§fUnit #" + id);
 
                 List<String> lore = new ArrayList<>();
-                lore.add("§7Coords: §fX=" + x + " Z=" + z);
-                lore.add("§7Material: §f" + (materialName == null ? "Unknown" : materialName));
-                lore.add("§7Exposed: §f" + (exposed ? "§aYes" : "§cNo"));
-                lore.add("§7Mined At: §f" + (minedAt > 0 ? formatTime(minedAt) : "Never"));
-                lore.add("§7Created: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
+                lore.add("§bCoords: §fX=" + x + " Z=" + z);
+                lore.add("§bMaterial: §f" + (materialName == null ? "Unknown" : materialName));
+                lore.add("§bExposed: §f" + (exposed ? "§aYes" : "§cNo"));
+                lore.add("§bMined At: §f" + (minedAt > 0 ? formatTime(minedAt) : "Never"));
+                lore.add("§bCreated: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
 
                 meta.setLore(lore);
 
