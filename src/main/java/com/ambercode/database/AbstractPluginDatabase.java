@@ -21,6 +21,16 @@ package com.ambercode.database;
 import com.ambercode.XRayDetector;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Abstract base class for database implementations in the plugin. This class provides
+ * foundational functionality and structure for managing database connections, types,
+ * and related operations.
+ * <p>
+ * Subclasses are expected to provide concrete implementations for certain database
+ * operations while utilizing the shared functionality in this class. The class ensures
+ * that database-specific configurations like driver class loading are handled and logged
+ * appropriately.
+ */
 public abstract class AbstractPluginDatabase implements PluginDatabase {
 
     protected final XRayDetector plugin;
@@ -32,6 +42,21 @@ public abstract class AbstractPluginDatabase implements PluginDatabase {
         this.databaseType = databaseType;
     }
 
+    /**
+     * Loads the JDBC driver class corresponding to the database type associated with this instance.
+     * <p>
+     * This method attempts to load the driver class using the class name retrieved from the
+     * {@code databaseType} object. If the driver class cannot be found, an appropriate log
+     * warning is written, and the server is gracefully shut down to prevent further operations.
+     * <p>
+     * The method relies on the `Class.forName` mechanism to dynamically load the driver class.
+     * A failure to locate the class results in a {@link ClassNotFoundException}.
+     * <p>
+     * Logging and server management are handled using the {@code plugin} instance, ensuring
+     * that all warnings and shutdown actions are properly recorded and executed.
+     *
+     * @throws RuntimeException if the driver class could not be loaded or the server fails to shut down
+     */
     @Override
     public void loadDriverClass() {
         try {
@@ -43,6 +68,11 @@ public abstract class AbstractPluginDatabase implements PluginDatabase {
         }
     }
 
+    /**
+     * Retrieves the database type associated with this instance.
+     *
+     * @return the database type, represented as an instance of {@link DatabaseType}.
+     */
     public DatabaseType getDatabaseType() {
         return databaseType;
     }

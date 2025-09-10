@@ -40,8 +40,18 @@ import java.util.*;
 public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull PlayerDataManager playerDataManager,
                                      @NotNull XRayDetector xRayDetector) implements Listener {
 
+    /**
+     * Handles the BlockBreakEvent triggered when a player breaks a block.
+     * This method tracks and manages tunnel structures created by players breaking blocks.
+     * It updates the player's mining activity, checks for existing tunnel structures,
+     * creates new structures if necessary, merges tunnel structures if applicable,
+     * and records relevant data into the database and logs.
+     *
+     * @param event the BlockBreakEvent instance, which holds details about the block
+     *              being broken, the player involved, and the event location. Must not be null.
+     */
     @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
+    public void onBlockBreak(@NotNull BlockBreakEvent event) {
         PluginDatabase db = xRayDetector().getPluginDatabase();
         Block block = event.getBlock();
         Player player = event.getPlayer();
@@ -156,10 +166,25 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         fileLogger.addLogMessage(String.format("player %s merged %d structures (%s) at [%d, %d] into new structure %s exposed=%b", playerName,adjacentToUniqueStructuresCount , uuidsList, blockLocation.getBlockX(), blockLocation.getBlockZ(), mergedStructure.getUuid(), exposedToAir));
     }
 
+    /**
+     * Determines whether the specified block location is a valid diamond location.
+     * A valid diamond location is within the NORMAL world environment and exists
+     * either below Y-level -64 or above Y-level 16.
+     *
+     * @param blockLocation the location of the block to be validated, must not be null
+     * @return true if the block location is valid for diamond spawning, false otherwise
+     */
     private boolean isValidDiamondLocation(@NotNull Location blockLocation) {
         return Objects.requireNonNull(blockLocation.getWorld()).getEnvironment() == World.Environment.NORMAL && (blockLocation.getBlockY() < -64 || blockLocation.getBlockY() > 16);
     }
 
+    /**
+     * Checks if the given location is a valid location for finding netherite in the Nether dimension.
+     *
+     * @param blockLocation the location to evaluate; must not be null.
+     * @return true if the location is in the Nether environment and the Y-coordinate
+     *         is less than 13 or greater than 119; false otherwise.
+     */
     private boolean isValidNetheriteLocation(@NotNull Location blockLocation) {
         return Objects.requireNonNull(blockLocation.getWorld()).getEnvironment() == World.Environment.NETHER && (blockLocation.getBlockY() < 13 || blockLocation.getBlockY() > 119);
     }

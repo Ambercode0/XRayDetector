@@ -26,24 +26,70 @@ import org.jetbrains.annotations.Nullable;
  */
 public enum DatabaseType {
 
+    /**
+     * Represents the SQLite database type.
+     * This enum value defines the database name as "sqlite" and its corresponding JDBC driver class as "org.sqlite.JDBC".
+     * Used to identify and interact with SQLite databases in the application.
+     */
     SQLITE("sqlite", "org.sqlite.JDBC"),
+    /**
+     * Enum constant representing MySQL database type.
+     * Provides the database name and the corresponding JDBC driver class name.
+     */
     MYSQL("mysql", "com.mysql.jdbc.Driver");
+
+    /**
+     * The name of the database type, used to uniquely identify the database.
+     * It specifies the short identifier or the common name of the database for internal usage.
+     */
     private final String name;
+    /**
+     * Represents the fully qualified name of the Java class used as the JDBC driver
+     * for the database type. This is used to load the specific database driver
+     * dynamically at runtime when establishing a connection.
+     * <p>
+     * This variable is immutable and its value is assigned during the
+     * initialization of a DatabaseType instance.
+     */
     private final String className;
 
-    DatabaseType(String name, String className) {
+    /**
+     * Constructs a DatabaseType with the specified database name and driver class name.
+     *
+     * @param name      the name of the database type
+     * @param className the fully qualified name of the driver class associated with the database
+     */
+    DatabaseType(@NotNull String name, @NotNull String className) {
         this.name = name;
         this.className = className;
     }
 
+    /**
+     * Retrieves the name of the database type.
+     *
+     * @return the database type name as a string.
+     */
+    @NotNull
     public String getName() {
         return name;
     }
 
+    /**
+     * Retrieves the name of the database driver's class associated with this database type.
+     *
+     * @return the class name of the database driver as a string.
+     */
+    @NotNull
     public String getClassName() {
         return className;
     }
 
+    /**
+     * Retrieves a DatabaseType enum constant matching the specified name, ignoring case considerations.
+     *
+     * @param name the name of the database type to match, must not be null
+     * @return the matching DatabaseType if found, otherwise null
+     */
     @Nullable
     public static DatabaseType fromName(@NotNull String name) {
         for (DatabaseType type : values()) {

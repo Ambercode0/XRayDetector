@@ -57,18 +57,51 @@ public final class Utils {
         return Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ());
     }
 
+    /**
+     * Determines whether the given material is classified as an ore.
+     *
+     * @param material The material to check.
+     * @return true if the material is one of the specified ores (e.g., diamond ore, deepslate diamond ore, emerald ore,
+     *         deepslate emerald ore, or ancient debris); false otherwise.
+     */
     public static boolean isOre(Material material) {
         return material == Material.DIAMOND_ORE || material == Material.DEEPSLATE_DIAMOND_ORE || material == Material.EMERALD_ORE || material == Material.DEEPSLATE_EMERALD_ORE || material == Material.ANCIENT_DEBRIS;
     }
 
+    /**
+     * Determines whether the material of the given TunnelUnit is classified as an ore.
+     *
+     * @param unit The TunnelUnit whose material is to be checked.
+     * @return true if the material of the TunnelUnit is classified as an ore; false otherwise.
+     */
     public static boolean isOre(TunnelUnit unit) {
         return isOre(unit.getMaterial());
     }
 
+    /**
+     * Represents an array of block directions adjacent to a specific block.
+     * This includes all six cardinal directions in a three-dimensional space:
+     * down, up, north, south, east, and west.
+     * <p>
+     * This array can be used for operations that require traversal or inspection
+     * of neighboring blocks, such as pathfinding, adjacency checks, or interaction
+     * with nearby blocks in a voxel-based environment.
+     */
     public static final BlockFace[] ADJACENT_DIRECTIONS = new BlockFace[]{
             BlockFace.DOWN, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP
     };
 
+    /**
+     * Determines whether a given tunnel unit or block is exposed to air. If a structure is
+     * specified, it evaluates the units in the tunnel structure for direct air adjacency.
+     * If no structure is provided, it evaluates the mined block's surrounding blocks.
+     *
+     * @param tunnelUnit The target tunnel unit being evaluated. Must not be null.
+     * @param tunnelStructure The tunnel structure to assess adjacency or null
+     *                        if the structure is not to be considered.
+     * @param minedBlock The block that has been mined. Must not be null.
+     * @return true if the provided tunnel unit or block is exposed to air, false otherwise.
+     */
     public static boolean isExposedToAir(@NotNull TunnelUnit tunnelUnit, @Nullable TunnelStructure tunnelStructure, @NotNull Block minedBlock) {
 
         if (tunnelStructure == null) {

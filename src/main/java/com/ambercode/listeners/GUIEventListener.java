@@ -30,6 +30,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -40,23 +41,38 @@ public class GUIEventListener implements Listener {
     private final FileLogger fileLogger;
     private final Logger log;
 
-    public GUIEventListener(SuspicionGUI suspicionGUI, FileLogger fileLogger) {
+    public GUIEventListener(@NotNull SuspicionGUI suspicionGUI, @NotNull FileLogger fileLogger) {
         this.suspicionGUI = suspicionGUI;
         this.fileLogger = fileLogger;
         this.log = suspicionGUI.getPlugin().getLogger();
     }
 
+    /**
+     * Determines if the title corresponds to the custom GUI identified by a specific base title.
+     * Logs the check result for debugging purposes.
+     *
+     * @param title The title of the GUI to check. Can be null.
+     * @return true if the title is not null and starts with the base title of the custom GUI; false otherwise.
+     */
     private boolean isOurGUI(String title) {
         boolean result = title != null && title.startsWith(SuspicionGUI.GUI_BASE_TITLE);
         fileLogger.addLogMessage("[GUI] isOurGUI check: title='" + title + "' base='" + SuspicionGUI.GUI_BASE_TITLE + "' result=" + result);
         return result;
     }
 
+    /**
+     * Handles inventory click events triggered by players interacting with a custom GUI.
+     * Logs event details, validates the clicked inventory, manages user sessions, and processes
+     * actions such as navigation, sorting, and content interaction specific to the GUI context.
+     * Cancels the event if the interaction is within the custom GUI to prevent unintended behaviors.
+     *
+     * @param event The InventoryClickEvent triggered when a player clicks on an inventory slot.
+     */
     @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
+    public void onInventoryClick(@NotNull InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        String title = event.getView().getTitle();
+        final String title = event.getView().getTitle(); // final; why not.
         fileLogger.addLogMessage("[GUI] Click event: player=" + player.getName() + " title='" + title + "'");
 
         if (!isOurGUI(title)) {
@@ -188,8 +204,14 @@ public class GUIEventListener implements Listener {
         }
     }
 
+    /**
+     * Handles the inventory drag event to prevent items from being dragged in a custom GUI.
+     * Cancels the drag event if the inventory being interacted with matches the custom GUI title.
+     *
+     * @param event The InventoryDragEvent triggered by a player dragging items in an inventory.
+     */
     @EventHandler
-    public void onInventoryDrag(InventoryDragEvent event) {
+    public void onInventoryDrag(@NotNull InventoryDragEvent event) {
         String title = event.getView().getTitle();
         if (isOurGUI(title)) {
             event.setCancelled(true);
@@ -197,8 +219,14 @@ public class GUIEventListener implements Listener {
         }
     }
 
+    /**
+     * Handles the InventoryCloseEvent when a player closes an inventory.
+     * Logs the event details and manages the session associated with a specific GUI if it's recognized.
+     *
+     * @param event The InventoryCloseEvent triggered when a player closes an inventory.
+     */
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
+    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
 
         String title = event.getView().getTitle();
@@ -211,7 +239,14 @@ public class GUIEventListener implements Listener {
         }
     }
 
-    private void openSameGUI(Player player, SuspicionGUI.GUISession session, int newPage) {
+    /**
+     * Re-opens the same GUI for a player based on the provided session and page.
+     *
+     * @param player the player for whom the GUI should be re-opened
+     * @param session the current GUI session containing mode, sorting, and display settings
+     * @param newPage the new page number to display in the GUI
+     */
+    private void openSameGUI(@NotNull Player player, @NotNull SuspicionGUI.GUISession session, int newPage) {
         fileLogger.addLogMessage("[GUI] Re-opening same GUI. Mode=" + session.mode + " NewPage=" + newPage);
         switch (session.mode) {
             case PLAYERS -> suspicionGUI.openGUI(player, newPage, session.sortType, session.showOnlySuspicious);

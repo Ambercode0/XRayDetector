@@ -36,6 +36,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The XRayDetectorCommand class serves as the main command handler for the
+ * X-Ray Detection System plugin. It enables players with appropriate permissions
+ * to view and manage X-ray detection data via subcommands. The class also provides
+ * tab completion support for command arguments.
+ * <p>
+ * This command allows interactive functionality such as viewing a paginated list
+ * of players and their suspicion levels, toggling filters, and customizing the
+ * display based on sorting options. Additionally, it delivers user feedback for
+ * invalid inputs while respecting the permission system.
+ */
 public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
 
     private final PlayerDataManager playerDataManager;
@@ -46,6 +57,17 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
         this.suspicionGUI = suspicionGUI;
     }
 
+    /**
+     * Handles the execution of the X-Ray Detection System command, allowing players to interact with
+     * the system through various subcommands like listing or viewing data. This command supports permissions,
+     * input validation, and displays usage feedback for invalid inputs.
+     *
+     * @param sender  the source of the command, which can be either a player or the console
+     * @param command the command object associated with this execution
+     * @param label   the alias or command name used by the sender
+     * @param args    the arguments passed to the command by the sender
+     * @return true to indicate that the command was successfully handled, regardless of input validity
+     */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
@@ -104,6 +126,18 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Handles tab completion for the given command. Based on the input arguments,
+     * this method provides context-specific suggestions to assist the user in
+     * completing their command input.
+     *
+     * @param sender  the source of the command, could be a player or the console
+     * @param command the command being executed
+     * @param alias   the alias used for the command
+     * @param args    the arguments already entered by the user
+     * @return a list of possible completions based on the current input context,
+     *         or an empty list if no suggestions are applicable
+     */
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
@@ -125,6 +159,12 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
         return new ArrayList<>();
     }
 
+    /**
+     * Sends a formatted usage message to the specified player, detailing the
+     * correct usage instructions for the X-Ray Detection System command.
+     *
+     * @param player the player to whom the usage instructions will be sent
+     */
     private void sendUsage(Player player) {
         player.sendMessage("§7§m─────────────────────────────────────");
         player.sendMessage("§6§lX-Ray Detection System");
@@ -136,6 +176,13 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
         player.sendMessage("§7§m─────────────────────────────────────");
     }
 
+    /**
+     * Highlights the optimised tunnel paths created by the specified player by showing particles
+     * at the locations of the path units of their tunnels. If the player has no associated miner data,
+     * they are informed with a message.
+     *
+     * @param player the player whose optimised tunnel paths should be highlighted, must not be null
+     */
     private void highlightOptimisedPath(Player player) {
         Miner miner = playerDataManager.getMiners().stream().filter(m -> m.getUuid().equals(player.getUniqueId())).findFirst().orElse(null);
 

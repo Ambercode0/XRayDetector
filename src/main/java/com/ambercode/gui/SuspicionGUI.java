@@ -36,11 +36,31 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+/**
+ * The {@code SuspicionGUI} class is responsible for managing and displaying multiple graphical
+ * user interfaces (GUIs) related to player activity and suspicious behavior detection in the
+ * game environment. It includes tools for navigating, sorting, and filtering data about players,
+ * their activities, and other related structures.
+ * <p>
+ * This class integrates with the {@link PlayerDataManager} to access and update player metrics,
+ * and it uses the provided plugin instance for scheduling tasks and interacting with the broader
+ * game server environment. The GUIs provide paginated navigation and are dynamically updated
+ * based on player activities and server events.
+ * <p>
+ * Primary features:
+ * - Player Data GUI: Displays player statistics, suspicion scores, and activity summaries.
+ * - Structures GUI: Shows tunnel structures created by miners, with details such as length, ores mined, and timestamps.
+ * - Units GUI: Represents individual structural or functional units related to player activities.
+ * - Flexible navigation and control mechanisms, including sorting and filtering options.
+ * - Automatic caching and periodic updates for efficient performance and synchronized data.
+ */
 public class SuspicionGUI {
 
     // Exposed base title so listeners can detect GUI inventories
@@ -83,8 +103,6 @@ public class SuspicionGUI {
         UNITS
     }
 
-    // ---- Public GUI entry points ----
-
     public String getActiveSessionsDebug() {
         if (activeSessions.isEmpty()) {
             return "No active sessions";
@@ -101,7 +119,18 @@ public class SuspicionGUI {
         return sb.toString();
     }
 
-    public void openGUI(Player viewer, int page, String sortType, boolean showOnlySuspicious) {
+    /**
+     * Opens a graphical user interface (GUI) for the specified player to display a list of player data.
+     * The GUI allows navigation across pages, sorting, and filtering based on the provided parameters.
+     *
+     * @param viewer                The player for whom the GUI is being opened. This player will view the inventory.
+     * @param page                  The page number of the GUI that should be displayed. Page numbers start from 0.
+     * @param sortType              The type of sorting to be applied to the player data. This could influence
+     *                              how the list of players is ordered in the GUI.
+     * @param showOnlySuspicious    A flag indicating whether only suspicious players should be shown in the GUI.
+     *                              If true, only suspicious data will be displayed; otherwise, all data will be included.
+     */
+    public void openGUI(@NotNull Player viewer, int page, @NotNull String sortType, boolean showOnlySuspicious) {
         fileLogger.addLogMessage("[GUI] Opening GUI for " + viewer.getName() + " UUID=" + viewer.getUniqueId());
 
         List<CachedPlayerData> playerData = getFilteredAndSortedPlayerData(sortType, showOnlySuspicious);
@@ -132,6 +161,14 @@ public class SuspicionGUI {
         viewer.openInventory(inventory);
     }
 
+    /**
+     * Opens the Structures GUI for a player displaying the miner's created tunnel structures.
+     * This method handles the initialization, pagination, and GUI session management.
+     *
+     * @param viewer    The player who is viewing the GUI.
+     * @param minerUUID The unique identifier of the miner whose structures are being displayed.
+     * @param page      The page number to display in the GUI.
+     */
     public void openStructuresGUI(Player viewer, UUID minerUUID, int page) {
         if (plugin == null) {
             viewer.sendMessage("§cGUI system not initialized yet. Please try again in a moment.");
@@ -227,8 +264,15 @@ public class SuspicionGUI {
         fileLogger.addLogMessage("[GUI] Opening units inventory for " + viewer.getName());
         viewer.openInventory(inventory);
     }
-    // ---- Populators ----
 
+    /**
+     * Populates the given inventory with player heads based on the provided player data and the page number.
+     * The inventory will display a limited number of items per page, and empty slots will be cleared.
+     *
+     * @param inventory the inventory to be populated with items
+     * @param playerData the list of player data used for creating player head items
+     * @param page the page number used to determine which subset of data to display in the inventory
+     */
     private void populateInventory(Inventory inventory, List<CachedPlayerData> playerData, int page) {
         int startIndex = page * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, playerData.size());
@@ -246,19 +290,16 @@ public class SuspicionGUI {
     }
 
     /**
-     * Populates the inventory with structure items.
-     * Expects "structures" to be a List of your TunnelStructure model (whatever your PlayerDataManager returns).
-     * The method uses reflection-like getter assumptions:
-     * - structure.getUuid()
-     * - structure.getTotalBlocks()
-     * - structure.getTotalOres()
-     * - structure.getLength()
-     * - structure.getCreatedAt()  -> (epoch ms) OR something convertible to long via toString (best if it's long)
+     * Populates the provided inventory with details of the specified tunnel structures, paginated
+     * based on the given page number. For each structure in the specified page, this method creates
+     * an inventory item that contains metadata about the structure, including its UUID, total blocks,
+     * total ores, length, and creation timestamp.
      *
-     * Adjust to match your actual TunnelStructure class if needed.
+     * @param inventory The Inventory to be populated with structure information. Cannot be null.
+     * @param structures The list of TunnelStructure objects to be displayed in the inventory. Cannot be null.
+     * @param page The page number (zero-based index) that determines which structures to display in the inventory.
      */
-    @SuppressWarnings("unchecked")
-    private void populateStructures(Inventory inventory, List<TunnelStructure> structures, int page) {
+    private void populateStructures(@NotNull Inventory inventory, @NotNull List<TunnelStructure> structures, int page) {
         int startIndex = page * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, structures.size());
 
@@ -304,20 +345,17 @@ public class SuspicionGUI {
     }
 
     /**
-     * Populates the inventory with tunnel units.
-     * Expects "units" to be List<TunnelUnit> or equivalent with getters:
-     * - getId()
-     * - getX()
-     * - getZ()
-     * - getMaterial() (String name for Bukkit Material)
-     * - isExposed()
-     * - getMinedAt() (epoch ms)
-     * - getCreatedAt() (epoch ms)
-     * <p>
-     * Adapt the introspection if your concrete class differs.
+     * Populates the provided inventory with items representing TunnelUnit objects.
+     * Each item displays relevant information (e.g., coordinates, material, exposure status)
+     * and metadata about the TunnelUnit. The inventory is populated based on the specified
+     * page, with a fixed number of items displayed per page.
+     *
+     * @param inventory the inventory to be populated with TunnelUnit items
+     * @param units the list of TunnelUnit objects to display in the inventory
+     * @param page the current page to display, determining the subset of TunnelUnit objects used
      */
     @SuppressWarnings("unchecked")
-    private void populateUnits(Inventory inventory, List<TunnelUnit> units, int page) {
+    private void populateUnits(@NotNull Inventory inventory, @NotNull List<TunnelUnit> units, int page) {
         int startIndex = page * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, units.size());
 
@@ -366,7 +404,17 @@ public class SuspicionGUI {
 
     // ---- Helpers for item creation ----
 
-    private ItemStack getOrCreatePlayerHead(CachedPlayerData data) {
+
+    /**
+     * Retrieves a player's custom head item from the cache or creates a new one if it does not exist
+     * or if the data is marked as dirty. The head item includes the player's display name, lore, and
+     * other metadata.
+     *
+     * @param data the cached player data containing the player's UUID, name, and other metadata
+     * @return the ItemStack representing the player's custom head
+     */
+    @NotNull
+    private ItemStack getOrCreatePlayerHead(@NotNull CachedPlayerData data) {
         UUID playerUUID = data.playerUUID;
 
         // Check cache first
@@ -400,7 +448,16 @@ public class SuspicionGUI {
         return head;
     }
 
-    private List<String> createPlayerLore(CachedPlayerData data) {
+    /**
+     * Creates a list of strings representing the lore for a player's item, containing
+     * various details about the player's activity and status.
+     *
+     * @param data the cached player data containing information such as the player's name,
+     *             suspicion score, ore veins found, mining sessions, average path efficiency,
+     *             last-seen time, and whether the player is suspicious, or not
+     */
+    @NotNull
+    private List<String> createPlayerLore(@NotNull CachedPlayerData data) {
         List<String> lore = new ArrayList<>();
 
         lore.add("§7Player: §f" + data.playerName);
@@ -438,6 +495,12 @@ public class SuspicionGUI {
         return lore;
     }
 
+    /**
+     * Determines the color code representing the suspicion level based on the provided score.
+     *
+     * @param score the numerical score indicating the suspicion level
+     * @return the color code as a string based on the score
+     */
     private String getSuspicionColor(double score) {
         if (score >= 80) return "§c§l";
         if (score >= 50) return "§6";
@@ -445,8 +508,20 @@ public class SuspicionGUI {
         return "§a";
     }
 
-    // Navigation row (common for all modes) — totalItems used to show "Showing X to Y of N"
-    private void addNavigationItems(Inventory inventory, int currentPage, int totalPages, int totalItems, GUIMode mode) {
+
+    /**
+     * Adds navigation and control items to the provided inventory based on the current page,
+     * total number of pages, total items, and the specified GUI mode. Navigation items include
+     * buttons for moving to the previous or next page, a page indicator, and additional control
+     * buttons specific to certain GUI modes.
+     *
+     * @param inventory the inventory to which the navigation items will be added
+     * @param currentPage the index of the current page being displayed (0-based)
+     * @param totalPages the total number of pages available
+     * @param totalItems the total number of items across all pages
+     * @param mode the GUI mode determining additional control items to display
+     */
+    private void addNavigationItems(@NotNull Inventory inventory, int currentPage, int totalPages, int totalItems, @NotNull GUIMode mode) {
         // Previous page button
         if (currentPage > 0) {
             ItemStack prevButton = new ItemStack(Material.ARROW);
@@ -521,8 +596,29 @@ public class SuspicionGUI {
         inventory.setItem(51, refresh);
     }
 
-    // ---- Cache & update logic (unchanged mostly) ----
-
+    /**
+     * Updates the player cache with the latest data for all miners managed by the
+     * {@code playerDataManager}. This method retrieves miner data, such as UUID,
+     * suspicion score, and cached metrics, and populates or updates entries in
+     * the {@code playerCache} map. It identifies changes to key player metrics
+     * and marks these entries as "dirty" if any relevant data has been modified.
+     * <p>
+     * The method performs the following steps for each miner:
+     * - Retrieves the UUID and name of the player.
+     * - Retrieves information from the miner, such as the suspicion score.
+     * - Constructs a new {@code CachedPlayerData} instance with updated values
+     *   and estimates fixed metrics (e.g., ore veins found, mining sessions).
+     * - Compares the new data with previously cached data to determine if
+     *   the entry has changed.
+     * - Updates the player cache with the new data.
+     * <p>
+     * This cache is used to track player data efficiently, ensuring that GUIs
+     * and other systems relying on cached player details always have the latest
+     * information.
+     * <p>
+     * Note: Certain player metrics, such as "ore veins found," may currently
+     * use placeholder values until implemented with actual data.
+     */
     private void updatePlayerCache() {
         for (Miner miner : playerDataManager.getMiners()) {
             UUID uuid = miner.getUuid();
@@ -537,8 +633,7 @@ public class SuspicionGUI {
             cachedData.lastSeen = offlinePlayer.getLastPlayed();
             cachedData.lastUpdated = System.currentTimeMillis();
 
-            // ADD THESE LINES - get the actual values from your Miner object:
-            cachedData.oreVeinsFound = 3; // or whatever method you have
+            cachedData.oreVeinsFound = 3; // or whatever method you have TODO: fix this with actual real data :)
             cachedData.miningSessions = 6; // or whatever method you have
             cachedData.avgPathEfficiency = 44f; // or whatever method you have
 
@@ -552,14 +647,49 @@ public class SuspicionGUI {
         }
     }
 
-    public GUISession getSession(UUID playerUUID) {
+    /**
+     * Retrieves the active GUI session associated with the specified player's UUID.
+     * If no session exists for the player, this method returns null.
+     *
+     * @param playerUUID the unique identifier (UUID) for the player
+     * @return the {@code GUISession} associated with the given player's UUID,
+     *         or {@code null} if no session exists
+     */
+    @Nullable
+    public GUISession getSession(@NotNull UUID playerUUID) {
         return activeSessions.get(playerUUID);
     }
 
-    public void closeSession(UUID playerUUID) {
+    /**
+     * Closes and removes the session associated with the provided player's UUID.
+     * This is typically used to clean up resources or end tracking for a specific player.
+     *
+     * @param playerUUID the unique identifier of the player whose session is to be closed
+     */
+    public void closeSession(@NotNull UUID playerUUID) {
         activeSessions.remove(playerUUID);
     }
 
+    /**
+     * Starts the update task responsible for asynchronously updating player data and refreshing GUI sessions.
+     * <p>
+     * This method ensures that only one update task is running at any given time by canceling any existing task
+     * before starting a new one. The update task performs the following operations periodically:
+     * <p>
+     * 1. Calls `updatePlayerCache()` asynchronously to update cached player data.
+     * 2. Schedules a synchronous task to refresh the GUI sessions for all active players.
+     *    Only players currently online, with sessions that have not been refreshed within the last 3 seconds,
+     *    will have their GUIs updated.
+     * <p>
+     * The task is executed with an initial delay and interval of 60 ticks (3 seconds).
+     * <p>
+     * This method is critical for maintaining the consistency of data displayed in the GUIs by ensuring
+     * efficient synchronization between the cache and the player's session views. The task operates across
+     * both asynchronous and synchronous contexts to balance performance and thread safety.
+     * <p>
+     * Preconditions:
+     * - The `plugin` field must not be null; otherwise, the method will exit without performing any operations.
+     */
     private void startUpdateTask() {
         if (plugin == null) return;
 
@@ -589,7 +719,24 @@ public class SuspicionGUI {
         }, 60L, 60L); // 60 ticks initial delay, 60 ticks period
     }
 
-    private List<CachedPlayerData> getFilteredAndSortedPlayerData(String sortType, boolean showOnlySuspicious) {
+    /**
+     * Filters and sorts player data from the cache based on the specified criteria.
+     * The method retrieves player data from the cache, filters it to include only
+     * players that match the provided "showOnlySuspicious" flag, and sorts the data
+     * either by player name (alphabetically) or suspicion score (descending), depending
+     * on the specified sort type.
+     *
+     * @param sortType the type of sorting to apply. Acceptable values are "name" for
+     *                 alphabetical sorting by player name and any other value for sorting
+     *                 by suspicion score in descending order.
+     * @param showOnlySuspicious whether to include only players with a suspicion score
+     *                           greater than or equal to 15.0. If false, all players
+     *                           will be included.
+     * @return a list of {@code CachedPlayerData} objects that match the filtering criteria
+     *         and are sorted as specified.
+     */
+    @NotNull
+    private List<CachedPlayerData> getFilteredAndSortedPlayerData(@NotNull String sortType, boolean showOnlySuspicious) {
         updatePlayerCache();
         return playerCache.values().stream().filter(data -> !showOnlySuspicious || data.suspicionScore >= 15.0).sorted((a, b) -> {
             if (sortType.equals("name")) {
@@ -600,7 +747,14 @@ public class SuspicionGUI {
         }).collect(Collectors.toList());
     }
 
-    // FIX 2: In refreshGUIForPlayer(), you need to recalculate totalPages
+    /**
+     * Refreshes and updates the player's GUI based on the provided session information.
+     * The method dynamically adjusts the inventory and navigation items depending on the
+     * current GUI mode (PLAYERS, STRUCTURES, or UNITS) and the associated data.
+     *
+     * @param player The player whose GUI needs to be refreshed.
+     * @param session The session object containing GUI state, configuration, and the data relevant to the current mode.
+     */
     private void refreshGUIForPlayer(Player player, GUISession session) {
         if (session.mode == GUIMode.PLAYERS) {
             List<CachedPlayerData> playerData = getFilteredAndSortedPlayerData(session.sortType, session.showOnlySuspicious);
@@ -628,6 +782,16 @@ public class SuspicionGUI {
         }
     }
 
+    /**
+     * Formats the provided timestamp as a relative time string, indicating the time elapsed
+     * since the given timestamp compared to the current system time. Returns a time format in days, hours,
+     * minutes, or "Just now" if the difference is less than a minute. If the timestamp is invalid
+     * or zero, it returns "Never".
+     *
+     * @param timestamp the timestamp in milliseconds since epoch to format
+     * @return a formatted string representing the time elapsed since the given timestamp
+     */
+    @NotNull
     private String formatTime(long timestamp) {
         if (timestamp <= 0) return "Never";
 
@@ -650,8 +814,6 @@ public class SuspicionGUI {
         playerCache.clear();
         headCache.clear();
     }
-
-    // ---- Click parsing helper (listener calls this) ----
 
     /**
      * Info returned to the listener when parsing a clicked item.

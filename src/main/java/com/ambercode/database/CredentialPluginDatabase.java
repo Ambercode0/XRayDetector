@@ -27,6 +27,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+/**
+ * Represents an abstract base class for database integrations that require user credentials.
+ * This class provides a foundation for managing database connections, including storing
+ * credentials, generating connection URLs, and handling connection lifecycles.
+ * Subclasses are expected to implement specific database behavior (e.g., SQLite, MySQL).
+ */
 public abstract class CredentialPluginDatabase extends AbstractPluginDatabase {
 
     /* ------------------------------ */
@@ -53,6 +59,12 @@ public abstract class CredentialPluginDatabase extends AbstractPluginDatabase {
     }
 
 
+    /**
+     * Creates a connection URL for the database based on the configured properties.
+     * The URL includes the database type, address, port, and database name required for connection.
+     *
+     * @return the formatted connection URL as a non-null string
+     */
     @NotNull
     protected String createConnectionUrl() {
         return String.format("jdbc:%s://%s:%d/%s",
@@ -82,22 +94,49 @@ public abstract class CredentialPluginDatabase extends AbstractPluginDatabase {
         }
     }
 
+    /**
+     * Retrieves the configured username for the database connection.
+     *
+     * @return the database username as a non-null string.
+     */
+    @NotNull
     public String getUsername() {
         return username;
     }
 
+    /**
+     * Retrieves the password used for the database connection.
+     *
+     * @return the database password as a non-null string
+     */
+    @NotNull
     public String getPassword() {
         return password;
     }
 
+    /**
+     * Retrieves the address associated with the database connection.
+     *
+     * @return the database address as a non-null string.
+     */
+    @NotNull
     public String getAddress() {
         return address;
     }
 
+    /**
+     *
+     */
+    @NotNull
     public String getDatabaseName() {
         return databaseName;
     }
 
+    /**
+     * Retrieves the port number used for database connections.
+     *
+     * @return the port number as an integer.
+     */
     public int getPort() {
         return port;
     }

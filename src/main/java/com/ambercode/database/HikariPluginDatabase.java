@@ -30,18 +30,36 @@ public abstract class HikariPluginDatabase extends CredentialPluginDatabase {
     protected final HikariConfig hikariConfig;
     protected final HikariDataSource hikariDataSource;
 
+    /**
+     * Constructs a new instance of HikariPluginDatabase using the specified plugin and database type.
+     * Initializes the HikariCP connection pool configuration and establishes default properties
+     * for optimized database connection handling.
+     *
+     * @param plugin the instance of {@link XRayDetector} that provides plugin integration and functionality. Must not be null.
+     * @param databaseType the type of database to connect to, represented by {@link DatabaseType}. Must not be null.
+     */
     protected HikariPluginDatabase(@NotNull XRayDetector plugin, @NotNull DatabaseType databaseType) {
         super(plugin, databaseType);
         this.hikariConfig = new HikariConfig();
         this.hikariConfig.setJdbcUrl(super.createConnectionUrl());
         this.hikariConfig.setUsername(super.username);
-        this.hikariConfig.setPassword(super.password);
+        this.hikariConfig.setPassword(super.password); // password is safely stored in config.yml
         this.hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
         this.hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
         this.hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         this.hikariDataSource = new HikariDataSource(this.hikariConfig);
     }
 
+    /**
+     * Establishes a connection to the database using the HikariCP connection pool.
+     * If a connection is already active, the method exits without performing any action.
+     * <p>
+     * In case of failure to acquire a connection, a warning is logged,
+     * and the server is forcefully shut down to prevent further operation without a valid connection.
+     * <p>
+     * This method relies on the `hikariDataSource` to provide a connection
+     * and handles exceptions by logging errors and invoking server shutdown.
+     */
     @Override
     public void connect() {
 

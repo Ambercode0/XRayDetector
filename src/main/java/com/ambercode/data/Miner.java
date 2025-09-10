@@ -25,6 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The Miner class represents a mining entity that creates and tracks tunnel structures.
+ * Each miner is associated with a unique identifier (UUID) and maintains a record of created
+ * tunnels, a suspicion score, and metrics related to mining activity.
+ */
 public class Miner {
 
     private final UUID uuid;
@@ -35,29 +40,62 @@ public class Miner {
         this.uuid = uuid;
     }
 
+    /**
+     * Retrieves a {@link TunnelStructure} from the list of created tunnels that matches the specified UUID.
+     *
+     * @param uuid the unique identifier of the tunnel structure to be retrieved; must not be null.
+     * @return the {@link TunnelStructure} with the specified UUID if found, or {@code null} if no matching structure exists.
+     */
     @Nullable
     public TunnelStructure getTunnelStructure(@NotNull UUID uuid) {
         return  createdTunnels.stream().filter(t -> t.getUuid().equals(uuid)).findAny().orElse(null);
     }
 
+    /**
+     * Retrieves the universally unique identifier (UUID) associated with this instance.
+     *
+     * @return a non-null UUID representing the unique identity of this instance.
+     */
     @NotNull
     public UUID getUuid() {
         return uuid;
     }
 
+    /**
+     * Retrieves the list of created tunnel structures associated with this instance.
+     *
+     * @return a non-null list of {@code TunnelStructure} objects representing the tunnels
+     *         created and tracked by this instance.
+     */
     @NotNull
     public List<TunnelStructure> getCreatedTunnels() {
         return createdTunnels;
     }
 
+    /**
+     * Retrieves the suspicion score associated with this entity.
+     * The suspicion score is an indicator that quantifies the potential for suspicious activity.
+     *
+     * @return the suspicion score as a double value.
+     */
     public double getSuspicionScore() {
         return suspicionScore;
     }
 
+    /**
+     * Returns the number of ore veins discovered by the miner.
+     *
+     * @return the number of ore veins discovered as an integer.
+     */
     public int getDiscoveredOreVeins() {
         return +0;
     }
 
+    /**
+     * Retrieves the total number of blocks mined by the miner.
+     *
+     * @return the number of blocks mined as an integer.
+     */
     public int getMinedBlocks() {
         return +0;
     }

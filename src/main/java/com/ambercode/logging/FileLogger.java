@@ -32,6 +32,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * The FileLogger class is a utility for buffering log messages and writing them to a file.
+ * It is designed to work in conjunction with an XRayDetector instance for logging operations.
+ * Thread safety is ensured through the use of a ReentrantLock for all modifications to the
+ * internal buffer of log messages.
+ */
 public class FileLogger {
 
     private final XRayDetector xRayDetector;
@@ -41,6 +47,11 @@ public class FileLogger {
     private static final SimpleDateFormat FILE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
     private static final SimpleDateFormat LOG_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * Constructs a new instance of the FileLogger class.
+     *
+     * @param xRayDetector The XRayDetector instance used for configuration and logging management. Must not be null.
+     */
     public FileLogger(@NotNull XRayDetector xRayDetector) {
         this.xRayDetector = xRayDetector;
         this.logLines = new ArrayList<>();
@@ -48,16 +59,26 @@ public class FileLogger {
         this.enabled = xRayDetector.getStandardConfig().isLoggerEnabled();
     }
 
+    /**
+     * Checks if the FileLogger is currently enabled.
+     *
+     * @return true if the FileLogger is enabled, false otherwise
+     */
     public boolean isEnabled() {
         return enabled;
     }
 
+    /**
+     * Enables or disables the FileLogger based on the provided value.
+     *
+     * @param enabled true to enable the FileLogger, false to disable it
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
     /**
-     * Adds a log message to the buffer with timestamp
+     * Adds a log message to the buffer with a timestamp
      * @param message The log message to add
      */
     public void addLogMessage(@NotNull String message) {
