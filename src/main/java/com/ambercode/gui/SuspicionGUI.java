@@ -1,3 +1,21 @@
+/*
+ *     XRayDetector - An advanced automatic detector to prevent X-Ray in your server
+ *     Copyright (C) 2025 'AmberCode'
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.ambercode.gui;
 
 import com.ambercode.XRayDetector;
@@ -23,14 +41,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-/**
- * SuspicionGUI - supports three modes:
- *  - PLAYERS: shows player heads (miners)
- *  - STRUCTURES: shows structures for a miner
- *  - UNITS: shows tunnel units for a structure
- * <p>
- * Items created by the GUI store type/id into the ItemMeta PersistentDataContainer so clicks are reliable.
- */
 public class SuspicionGUI {
 
     // Exposed base title so listeners can detect GUI inventories
