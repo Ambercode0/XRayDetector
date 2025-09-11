@@ -19,13 +19,27 @@
 package com.ambercode.utils;
 
 import com.ambercode.data.TunnelUnit;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Range;
 
 import java.util.*;
 
 public class TunnelPathFinder {
 
-    public static List<TunnelUnit> findLongestPath(List<TunnelUnit> tunnelUnits) {
-        if (tunnelUnits == null || tunnelUnits.isEmpty()) {
+    /**
+     * Finds the longest path of connected {@code TunnelUnit} objects within a given list.
+     * The method determines adjacency based on the Manhattan distance of 1 between the units,
+     * and uses a depth-first search to evaluate potential paths.
+     *
+     * @param tunnelUnits the list of {@code TunnelUnit} objects representing the tunnel system;
+     *                    must not be null, but can be empty. An empty list will return an empty result.
+     * @return a list of {@code TunnelUnit} objects forming the longest path. If multiple paths of
+     *         equal maximum length exist, one of them will be returned. Returns an empty list if
+     *         {@code tunnelUnits} is null or empty.
+     */
+    @NotNull
+    public static List<TunnelUnit> findLongestPath(@NotNull List<TunnelUnit> tunnelUnits) {
+        if (tunnelUnits.isEmpty()) {
             return new ArrayList<>();
         }
 
@@ -33,7 +47,7 @@ public class TunnelPathFinder {
             return new ArrayList<>(tunnelUnits);
         }
 
-        // Build adjacency map for quick neighbor lookup
+        // Build adjacency map for a quick neighbor lookup
         Map<TunnelUnit, List<TunnelUnit>> adjacencyMap = buildAdjacencyMap(tunnelUnits);
 
         List<TunnelUnit> longestPath = new ArrayList<>();
@@ -49,7 +63,18 @@ public class TunnelPathFinder {
         return longestPath;
     }
 
-    private static Map<TunnelUnit, List<TunnelUnit>> buildAdjacencyMap(List<TunnelUnit> tunnelUnits) {
+    /**
+     * Constructs an adjacency map that represents the relationships between all {@code TunnelUnit} objects
+     * in the provided list. Two {@code TunnelUnit} objects are considered adjacent if their Manhattan
+     * distance is exactly 1.
+     *
+     * @param tunnelUnits the list of {@code TunnelUnit} objects for which the adjacency map is to be created.
+     *                    Each unit is expected to have distinct coordinates in the XZ plane.
+     * @return a map where each key is a {@code TunnelUnit}, and its value is a list of {@code TunnelUnit}
+     *         objects that are adjacent to the key unit.
+     */
+    @NotNull
+    private static Map<TunnelUnit, List<TunnelUnit>> buildAdjacencyMap(@NotNull List<TunnelUnit> tunnelUnits) {
         Map<TunnelUnit, List<TunnelUnit>> adjacencyMap = new HashMap<>();
 
         // Initialize adjacency lists
@@ -73,12 +98,32 @@ public class TunnelPathFinder {
         return adjacencyMap;
     }
 
-    private static int manhattanDistance(TunnelUnit unit1, TunnelUnit unit2) {
+    /**
+     * Calculates the Manhattan distance between two TunnelUnit objects.
+     * The Manhattan distance is defined as the sum of the absolute differences
+     * of their X and Z coordinates.
+     *
+     * @param unit1 the first TunnelUnit whose coordinates are used in the calculation.
+     * @param unit2 the second TunnelUnit whose coordinates are used in the calculation.
+     * @return the Manhattan distance between the two TunnelUnits.
+     */
+    @Range(from = 0, to = Integer.MAX_VALUE)
+    private static int manhattanDistance(@NotNull TunnelUnit unit1, @NotNull TunnelUnit unit2) {
         return Math.abs(unit1.getX() - unit2.getX()) + Math.abs(unit1.getZ() - unit2.getZ());
     }
 
-    private static List<TunnelUnit> findLongestPathFrom(TunnelUnit start,
-                                                        Map<TunnelUnit, List<TunnelUnit>> adjacencyMap) {
+    /**
+     * Finds the longest path in a tunnel system, starting from a given tunnel unit.
+     * This method uses depth-first search (DFS) to traverse the adjacency graph
+     * of the tunnel units and identifies the longest path.
+     *
+     * @param start the starting TunnelUnit for the pathfinding algorithm; must not be null
+     * @param adjacencyMap a map representing the adjacency list of the tunnel system;
+     *                     keys are TunnelUnit instances, values are lists of adjacent TunnelUnit instances
+     * @return a list of TunnelUnit instances representing the longest path found from the starting point
+     */
+    private static List<TunnelUnit> findLongestPathFrom(@NotNull TunnelUnit start,
+                                                        @NotNull Map<TunnelUnit, List<TunnelUnit>> adjacencyMap) {
         Set<TunnelUnit> visited = new HashSet<>();
         List<TunnelUnit> currentPath = new ArrayList<>();
         List<TunnelUnit> longestPath = new ArrayList<>();
@@ -88,16 +133,27 @@ public class TunnelPathFinder {
         return longestPath;
     }
 
-    private static void dfs(TunnelUnit current,
-                            Map<TunnelUnit, List<TunnelUnit>> adjacencyMap,
-                            Set<TunnelUnit> visited,
-                            List<TunnelUnit> currentPath,
-                            List<TunnelUnit> longestPath) {
+    /**
+     * Performs a depth-first search (DFS) to explore paths in a tunnel system,
+     * keeping track of the current path and updating the longest path found.
+     *
+     * @param current the current TunnelUnit being visited in the DFS traversal
+     * @param adjacencyMap a map representing the adjacency list of the tunnel units
+     *                     where each TunnelUnit points to its list of neighbors
+     * @param visited a set of TunnelUnits that have already been visited during the search
+     * @param currentPath a list representing the current path being traversed
+     * @param longestPath a list representing the longest path observed during traversal
+     */
+    private static void dfs(@NotNull TunnelUnit current,
+                            @NotNull Map<TunnelUnit, List<TunnelUnit>> adjacencyMap,
+                            @NotNull Set<TunnelUnit> visited,
+                            @NotNull List<TunnelUnit> currentPath,
+                            @NotNull List<TunnelUnit> longestPath) {
 
         visited.add(current);
         currentPath.add(current);
 
-        // Update the longest path if current path is longer
+        // Update the longest path if the current path is longer
         if (currentPath.size() > longestPath.size()) {
             longestPath.clear();
             longestPath.addAll(currentPath);
@@ -115,9 +171,18 @@ public class TunnelPathFinder {
         currentPath.removeLast();
     }
 
-    // Utility method to calculate the Manhattan distance of a path
-    public static int calculatePathDistance(List<TunnelUnit> path) {
-        if (path == null || path.size() < 2) {
+    /**
+     * Calculates the Manhattan distance between the first and the last units in a given path.
+     * If the path is null or contains fewer than two elements, the distance is considered zero.
+     *
+     * @param path the list of {@code TunnelUnit} instances representing the path.
+     *             The path must contain at least two units to calculate the distance.
+     * @return the Manhattan distance between the first and the last units in the path,
+     *         or 0 if the path is null or contains fewer than two units.
+     */
+    @Range(from = 0, to = Integer.MAX_VALUE)
+    public static int calculatePathDistance(@NotNull List<TunnelUnit> path) {
+        if (path.size() < 2) {
             return 0;
         }
 
