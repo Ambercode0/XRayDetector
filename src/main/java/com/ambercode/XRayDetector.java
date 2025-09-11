@@ -30,6 +30,7 @@ import com.ambercode.listeners.TunnelTrackingListener;
 import com.ambercode.logging.FileLogger;
 import com.ambercode.manager.PlayerDataManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
@@ -289,9 +290,9 @@ public class XRayDetector extends JavaPlugin {
      * called automatically when the plugin is stopped or reloaded.
      * <p>
      * Key functionalities:
-     * - Finalizes the logging process by writing any buffered log messages to a file,
+     * - Finalizes the logging process by writing any buffered log messages to a file
      *   and logs the location of the generated log file if successful.
-     * - Closes the database connection safely if it has been initialized, to avoid
+     * - Closes the database connection safely if it has been initialized to avoid
      *   potential resource leaks.
      * <p>
      * It ensures that critical resources like file logs and database connections
@@ -315,6 +316,7 @@ public class XRayDetector extends JavaPlugin {
      * @return the instance of {@link StandardConfig} associated with the plugin,
      *         providing access to configuration settings.
      */
+    @NotNull
     public StandardConfig getStandardConfig() {
         return standardConfig;
     }
@@ -326,6 +328,7 @@ public class XRayDetector extends JavaPlugin {
      *         providing methods for database operations such as connection management,
      *         data insertion, and table creation.
      */
+    @NotNull
     public PluginDatabase getPluginDatabase() {
         return pluginDatabase;
     }
@@ -335,6 +338,7 @@ public class XRayDetector extends JavaPlugin {
      *
      * @return the {@link FileLogger} instance, providing methods for managing log files and messages.
      */
+    @NotNull
     public FileLogger getFileLogger() {
         return fileLogger;
     }
@@ -344,6 +348,7 @@ public class XRayDetector extends JavaPlugin {
      *
      * @return the {@link SuspicionGUI} instance, providing methods and interface for managing and displaying suspicion-related GUI components.
      */
+    @NotNull
     public SuspicionGUI getSuspicionGUI() {
         return suspicionGUI;
     }
