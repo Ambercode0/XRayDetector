@@ -657,7 +657,49 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
             }
         }
 
-        /**
+    /**
+     * Deletes miner data from the database based on the provided unique identifier.
+     * This method attempts to remove the miner entry corresponding to the specified UUID.
+     * If the deletion is successful, a positive result is returned.
+     * If an error occurs during the operation, it is logged and the method returns false.
+     *
+     * @param minerUuid The unique identifier of the miner whose data is to be deleted. Must not be null.
+     * @return True if the miner data was successfully deleted, false otherwise.
+     */
+    @Override
+    public boolean deleteMinerData(@NotNull UUID minerUuid) {
+        final String methodName = "deleteMinerData";
+
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM miners WHERE uuid = ?")) {
+            ps.setString(1, minerUuid.toString());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            logError(methodName, "Error deleting miner", exception);
+            return false;
+        }
+    }
+
+    /**
+     * Deletes a tunnel structure from the database using the specified UUID.
+     * Returns {@code true} if the deletion was successful, {@code false} otherwise.
+     *
+     * @param stuctureUuid The UUID of the tunnel structure to delete. Must not be null.
+     * @return {@code true} if the tunnel structure was successfully deleted, {@code false} if an error occurred or no record was deleted.
+     */
+    @Override
+    public boolean deleteTunnelStructureData(@NotNull UUID stuctureUuid) {
+        final String methodName = "deleteTunnelStructureData";
+
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM tunnel_structures WHERE uuid = ?")) {
+            ps.setString(1, stuctureUuid.toString());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            logError(methodName, "Error deleting tunnel structure", exception);
+            return false;
+        }
+    }
+    
+    /**
          * Enhanced error logging method that includes method name and detailed SQL error information
          *
          * @param methodName The name of the method where the error occurred
@@ -691,5 +733,6 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                 exception.printStackTrace();
             }
         }
+
 }
 

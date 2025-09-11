@@ -27,6 +27,10 @@ import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public final class Utils {
 
     public Utils() {
@@ -116,12 +120,91 @@ public final class Utils {
             return false;
         }
 
-        for (final TunnelUnit tempUnit : tunnelStructure.getMainTunnelPath().getUnits()) {
-            if (Utils.manhattanDistance2D(tempUnit, tunnelUnit) == 1 && tempUnit.isExposedToAir() && tempUnit.isOre()) {
+        for (final TunnelUnit tempUnit : tunnelStructure.getMainTunnelPath().getUnits())
+            if (Utils.manhattanDistance2D(tempUnit, tunnelUnit) == 1 && tempUnit.isExposedToAir() && tempUnit.isOre())
                 return true;
+
+        return false;
+    }
+
+    /**
+     * Calculates the average ore density within a given tunnel structure.
+     * This is determined by dividing the number of ore-containing units
+     * by the total number of units in the main tunnel path.
+     *
+     * @param structure The tunnel structure to analyze. Must not be null.
+     * @return The average ore density, calculated as the ratio of ore-containing
+     *         units to the total number of units in the main tunnel path.
+     */
+    public static double averageOreDensity(@NotNull TunnelStructure structure) {
+        int oreCount = 0;
+        for (TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+            if (unit.isOre()) {
+                oreCount++;
             }
         }
-        return false;
-
+        return (double) oreCount / structure.getMainTunnelPath().getUnits().size();
     }
+
+    /**
+     * Calculates the average time (in milliseconds) between finding ores in a tunnel structure.
+     * This is computed by finding time differences between consecutive ore discoveries
+     * and calculating their average.
+     *
+     * @param structure The tunnel structure to analyze. Must not be null.
+     * @return The average time in milliseconds between ore discoveries. Returns 0 if less than 2 ores are found.
+     * Use {@link #formatTimeDifference(long)} to convert to human-readable format.
+     */
+    public static long averageTimePerOreFound(@NotNull TunnelStructure structure) {
+        List<TunnelUnit> units = structure.getMainTunnelPath().getUnits();
+        List<Long> oreTimes = new ArrayList<>();
+
+        for (TunnelUnit unit : units)
+            if (unit.isOre())
+                oreTimes.add(unit.getMinedAt());
+
+        if (oreTimes.size() < 2)
+            return 0;
+
+        Collections.sort(oreTimes);
+        long totalTimeDiff = 0;
+        for (int i = 1; i < oreTimes.size(); i++)
+            totalTimeDiff += oreTimes.get(i) - oreTimes.get(i - 1);
+
+        return totalTimeDiff / (oreTimes.size() - 1);
+    }
+
+    /**
+     * Converts a time difference in milliseconds to a human-readable format.
+     * Format examples: "5m 11s", "1h 30m", "45s"
+     *
+     * @param milliseconds The time difference in milliseconds
+     * @return A formatted string representing the time difference
+     */
+    @NotNull
+    public static String formatTimeDifference(long milliseconds) {
+        if (milliseconds == 0) return "0s";
+
+        long seconds = milliseconds / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+
+        seconds = seconds % 60;
+        minutes = minutes % 60;
+
+        StringBuilder result = new StringBuilder();
+        if (hours > 0) {
+            result.append(hours).append("h ");
+        }
+        if (minutes > 0) {
+            result.append(minutes).append("m ");
+        }
+        if (seconds > 0 || (hours == 0 && minutes == 0)) {
+            result.append(seconds).append("s");
+        }
+
+        return result.toString().trim();
+    }
+    
+    
 }

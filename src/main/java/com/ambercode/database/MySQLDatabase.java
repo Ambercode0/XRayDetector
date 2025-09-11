@@ -66,8 +66,18 @@ public class MySQLDatabase extends HikariPluginDatabase {
     }
 
     @Override
-    public void mergeStructures(UUID minerUuid, TunnelStructure newMergedStructure, TunnelUnit newTunnelUnit, List<TunnelStructure> oldStructures) {
+    public void mergeStructures(@NotNull UUID minerUuid, @NotNull TunnelStructure newMergedStructure, @NotNull TunnelUnit newTunnelUnit, @NotNull List<TunnelStructure> oldStructures) {
 
+    }
+
+    @Override
+    public boolean deleteMinerData(@NotNull UUID minerUuid) {
+        return false;
+    }
+
+    @Override
+    public boolean deleteTunnelStructureData(@NotNull UUID stuctureUuid) {
+        return false;
     }
 
 }

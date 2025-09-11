@@ -80,8 +80,13 @@ public interface PluginDatabase {
 
     void insertMiner(@NotNull Miner miner);
 
-    public void mergeStructures(UUID minerUuid,
-                                TunnelStructure newMergedStructure,
-                                TunnelUnit newTunnelUnit,
-                                List<TunnelStructure> oldStructures);
+    void mergeStructures(@NotNull UUID minerUuid,
+                         @NotNull TunnelStructure newMergedStructure,
+                         @NotNull TunnelUnit newTunnelUnit,
+                         @NotNull List<TunnelStructure> oldStructures);
+
+    boolean deleteMinerData(@NotNull UUID minerUuid);
+
+    boolean deleteTunnelStructureData(@NotNull UUID stuctureUuid);
+
 }

@@ -122,4 +122,28 @@ public class PlayerDataManager {
     public Set<Miner> getMiners() {
         return miners;
     }
+
+
+    /**
+     * Removes a miner from the internal collection using their unique identifier (UUID).
+     *
+     * @param uuid the unique identifier of the miner to be removed must not be null
+     * @return true if a miner with the specified UUID was found and removed, false otherwise
+     */
+    public boolean removeMiner(@NotNull UUID uuid) {
+        return miners.removeIf(miner -> miner.getUuid().equals(uuid));
+    }
+
+    /**
+     * Attempts to remove a tunnel structure associated with the specified UUID.
+     * Searches through all miners to identify if a tunnel structure with the specified
+     * UUID exists, and if so, confirms its presence without directly modifying data
+     * in this method.
+     *
+     * @param uuid the unique identifier of the tunnel structure to be removed; must not be null
+     * @return true if a tunnel structure with the specified UUID exists, false otherwise
+     */
+    public boolean removeStructure(@NotNull UUID uuid) {
+        return miners.stream().anyMatch(miner -> miner.getTunnelStructure(uuid) != null);
+    }
 }

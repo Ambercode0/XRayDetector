@@ -24,6 +24,7 @@ import com.ambercode.data.TunnelStructure;
 import com.ambercode.data.TunnelUnit;
 import com.ambercode.logging.FileLogger;
 import com.ambercode.manager.PlayerDataManager;
+import com.ambercode.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -33,12 +34,12 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -71,19 +72,21 @@ public class SuspicionGUI {
     public static final String GUI_TITLE_STRUCTURES = GUI_BASE_TITLE + " Structures - Page ";
     public static final String GUI_TITLE_UNITS = GUI_BASE_TITLE + " Units - Page ";
 
+    public static final DecimalFormat DENSITY_FORMAT = new DecimalFormat("#.##");
+
     private final PlayerDataManager playerDataManager;
     private final Map<UUID, GUISession> activeSessions = new ConcurrentHashMap<>();
     private final Map<UUID, CachedPlayerData> playerCache = new ConcurrentHashMap<>();
     private final Map<UUID, ItemStack> headCache = new ConcurrentHashMap<>();
     private BukkitTask updateTask;
     private final FileLogger fileLogger;
-    private final Plugin plugin;
+    private final XRayDetector plugin;
 
     // NamespacedKey for PDC storage (initialized in setPlugin)
     private final NamespacedKey keyType;
     private final NamespacedKey keyId;
 
-    public SuspicionGUI(PlayerDataManager playerDataManager, XRayDetector plugin) {
+    public SuspicionGUI(@NotNull PlayerDataManager playerDataManager, @NotNull XRayDetector plugin) {
         this.playerDataManager = playerDataManager;
         this.plugin = plugin;
         this.fileLogger = plugin.getFileLogger();
@@ -92,8 +95,14 @@ public class SuspicionGUI {
         startUpdateTask();
     }
 
-    public Plugin getPlugin() {
+    @NotNull
+    public XRayDetector getPlugin() {
         return plugin;
+    }
+
+    @NotNull
+    public PlayerDataManager getPlayerDataManager() {
+        return playerDataManager;
     }
 
     // GUI modes
@@ -320,12 +329,15 @@ public class SuspicionGUI {
                 ItemMeta meta = item.getItemMeta();
                 meta.setDisplayName("§6Structure §f" + uuid);
 
+                long avgTimePerOre = Utils.averageTimePerOreFound(structure);
+
                 List<String> lore = new ArrayList<>();
                 lore.add("§bUUID: §f" + uuid);
                 lore.add("§bWorld: §f" + tempUnit.getWorldName());
                 lore.add("§bTotal Blocks: §f" + totalBlocks);
                 lore.add("§bTotal Ores: §f" + totalOres);
-                lore.add("§bLength: §f" + String.format("%.1f", length));
+                lore.add("§bOre Density: §f" + DENSITY_FORMAT.format(Utils.averageOreDensity(structure)*100));
+                lore.add("§bAvg. Ore Find Time: §f" + (avgTimePerOre != 0 ? Utils.formatTimeDifference(avgTimePerOre) : "Unavailable"));
                 lore.add("§bCreated: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
                 lore.add("");
                 lore.add("§eClick to view tunnel units");
@@ -459,7 +471,7 @@ public class SuspicionGUI {
      *             last-seen time, and whether the player is suspicious, or not
      */
     @NotNull
-    private List<String> createPlayerLore(@NotNull CachedPlayerData data) {
+    private List<String> createPlayerLore(final @NotNull CachedPlayerData data) {
         List<String> lore = new ArrayList<>();
 
         lore.add("§7Player: §f" + data.playerName);
@@ -596,6 +608,18 @@ public class SuspicionGUI {
         refreshMeta.setLore(Arrays.asList("§7Click to refresh"));
         refresh.setItemMeta(refreshMeta);
         inventory.setItem(51, refresh);
+
+        boolean isStructureMode = mode == GUIMode.STRUCTURES;
+        boolean isUnitMode = mode == GUIMode.UNITS;
+        if (isStructureMode || isUnitMode) {
+            // Erase data button (structure)
+            ItemStack erase = new ItemStack(Material.BARRIER);
+            ItemMeta eraseMeta = erase.getItemMeta();
+            eraseMeta.setDisplayName(isStructureMode ? "§cErase This Player Data" : "§cErase This Structure Data");
+            eraseMeta.setLore(Arrays.asList("§7Click to erase all data open", "§l§cThis is not reversible!"));
+            erase.setItemMeta(eraseMeta);
+            inventory.setItem(50, erase);
+        }
     }
 
     /**
@@ -635,9 +659,9 @@ public class SuspicionGUI {
             cachedData.lastSeen = offlinePlayer.getLastPlayed();
             cachedData.lastUpdated = System.currentTimeMillis();
 
-            cachedData.oreVeinsFound = 3; // or whatever method you have TODO: fix this with actual real data :)
-            cachedData.miningSessions = 6; // or whatever method you have
-            cachedData.avgPathEfficiency = 44f; // or whatever method you have
+            cachedData.oreVeinsFound = miner.getDiscoveredOreVeins();
+            cachedData.miningSessions = miner.getCreatedTunnels().size();
+            cachedData.avgPathEfficiency = -1; // TODO: maybe implement, maybe remove.
 
             // Check if data changed
             CachedPlayerData oldData = playerCache.get(uuid);

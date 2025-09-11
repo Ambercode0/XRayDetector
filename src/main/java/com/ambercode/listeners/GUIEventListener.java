@@ -61,12 +61,12 @@ public class GUIEventListener implements Listener {
     }
 
     /**
-     * Handles inventory click events triggered by players interacting with a custom GUI.
-     * Logs event details, validates the clicked inventory, manages user sessions, and processes
-     * actions such as navigation, sorting, and content interaction specific to the GUI context.
-     * Cancels the event if the interaction is within the custom GUI to prevent unintended behaviors.
+     * Handles inventory click events for custom GUI interactions. This method ensures the click event
+     * is processed only if it occurs within a custom GUI managed by the plugin. It also performs
+     * various actions based on the clicked slot, such as navigation, sorting, deletion, and parsing
+     * of clicked items.
      *
-     * @param event The InventoryClickEvent triggered when a player clicks on an inventory slot.
+     * @param event the InventoryClickEvent triggered when a player interacts with an inventory
      */
     @EventHandler
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
@@ -109,6 +109,35 @@ public class GUIEventListener implements Listener {
                 " Page=" + session.currentPage +
                 " Slot=" + slot +
                 " Item=" + (clickedItem == null ? "null" : clickedItem.getType().name()));
+
+        // Handle delete button
+        if (slot == 50) {
+            if (session.mode == SuspicionGUI.GUIMode.STRUCTURES) {
+                boolean databaseResult = suspicionGUI.getPlugin().getPluginDatabase().deleteMinerData(session.minerUUID);
+                suspicionGUI.openGUI(player, 0, session.sortType, session.showOnlySuspicious);
+                player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+                boolean deleteMinerResult = suspicionGUI.getPlayerDataManager().removeMiner(session.minerUUID);
+                if (!databaseResult || !deleteMinerResult) {
+                    log.warning("Failed to delete tunnel structure data for UUID " + session.structureUUID);
+                } else {
+                    log.info("Successfully deleted tunnel structure data for UUID " + session.structureUUID);
+                    player.sendMessage("§aSuccessfully deleted miner data");
+                }
+                return;
+            } else if (session.mode == SuspicionGUI.GUIMode.UNITS) {
+                boolean databaseResult = suspicionGUI.getPlugin().getPluginDatabase().deleteTunnelStructureData(UUID.fromString(session.structureUUID));
+                suspicionGUI.openGUI(player, 0, session.sortType, session.showOnlySuspicious);
+                player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+                boolean deleteStructureResult = suspicionGUI.getPlayerDataManager().removeStructure(UUID.fromString(session.structureUUID));
+                if (!databaseResult || !deleteStructureResult) {
+                    log.warning("Failed to delete tunnel structure data for UUID " + session.structureUUID);
+                } else {
+                    log.info("Successfully deleted tunnel structure data for UUID " + session.structureUUID);
+                    player.sendMessage("§aSuccessfully deleted tunnel structure data");
+                }
+                return;
+            }
+        }
 
         // Navigation buttons
         if (slot == 45 && session.currentPage > 0) {

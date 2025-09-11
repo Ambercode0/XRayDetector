@@ -88,7 +88,13 @@ public class Miner {
      * @return the number of ore veins discovered as an integer.
      */
     public int getDiscoveredOreVeins() {
-        return +0;
+        int counter = 0;
+        for (TunnelStructure structure : createdTunnels)
+            for (TunnelUnit unit : structure.getMainTunnelPath().getUnits())
+                if (unit.isOre())
+                    counter++;
+
+        return counter;
     }
 
     /**

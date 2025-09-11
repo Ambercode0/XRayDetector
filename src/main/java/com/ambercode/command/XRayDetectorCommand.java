@@ -70,12 +70,10 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
      */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage("§cThis command can only be used by players.");
             return true;
         }
-
-        Player player = (Player) sender;
 
         if (!player.hasPermission("xraydetector.gui")) {
             player.sendMessage("§cYou don't have permission to use this command.");
