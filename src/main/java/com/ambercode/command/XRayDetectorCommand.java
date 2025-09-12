@@ -26,6 +26,7 @@ import com.ambercode.manager.PlayerDataManager;
 import com.ambercode.utils.TunnelPathFinder;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -89,7 +90,7 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
             int page = 0;
             String sortType = "suspicion";
             boolean showOnlySuspicious = false;
-
+            player.playSound(player.getLocation(), Sound.ENTITY_ENDER_PEARL_THROW, 1.0f, 1.0f);
             // Parse additional arguments
             if (args.length >= 2) {
                 try {

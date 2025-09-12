@@ -130,4 +130,14 @@ public class StandardConfig {
     public boolean isCrashShutdown() {
         return config.getBoolean("database.crash-shutdown");
     }
+
+    /**
+     * Retrieves the analysis interval value from the configuration.
+     * This value is used as a time interval for executing specific analysis operations.
+     *
+     * @return the analysis interval value, in minutes as a long integer.
+     */
+    public long getAnalysisInterval() {
+        return config.getLong("analysis.interval");
+    }
 }

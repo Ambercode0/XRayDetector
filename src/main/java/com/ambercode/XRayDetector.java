@@ -18,6 +18,7 @@
 
 package com.ambercode;
 
+import com.ambercode.analysis.PeriodicAnalyzer;
 import com.ambercode.command.XRayDetectorCommand;
 import com.ambercode.config.StandardConfig;
 import com.ambercode.database.DatabaseType;
@@ -86,10 +87,9 @@ public class XRayDetector extends JavaPlugin {
      * initialized and connected to avoid runtime exceptions.
      */
     private PluginDatabase pluginDatabase = null;
-    /**
-     *
-     */
+
     private SuspicionGUI suspicionGUI = null;
+    private PeriodicAnalyzer periodicAnalyzer = null;
 
 
     /**
@@ -119,6 +119,12 @@ public class XRayDetector extends JavaPlugin {
         setupPlayerDataManager();
         setupListeners();
         setupCommands();
+        setupPeriodicAnalysis();
+    }
+
+    private void setupPeriodicAnalysis() {
+        periodicAnalyzer = new PeriodicAnalyzer(this);
+        periodicAnalyzer.start();
     }
 
     /**
@@ -308,6 +314,7 @@ public class XRayDetector extends JavaPlugin {
             pluginDatabase.close();
         }
 
+        periodicAnalyzer.stop();
     }
 
     /**
@@ -351,5 +358,17 @@ public class XRayDetector extends JavaPlugin {
     @NotNull
     public SuspicionGUI getSuspicionGUI() {
         return suspicionGUI;
+    }
+
+    /**
+     * Retrieves the instance of {@link PlayerDataManager} associated with the plugin.
+     *
+     * @return the {@link PlayerDataManager} instance, responsible for managing
+     *         player-related data such as loading and accessing cached information
+     *         from the database.
+     */
+    @NotNull
+    public PlayerDataManager getPlayerDataManager() {
+        return playerDataManager;
     }
 }

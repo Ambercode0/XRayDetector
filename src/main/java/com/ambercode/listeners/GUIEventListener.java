@@ -20,8 +20,10 @@ package com.ambercode.listeners;
 
 import com.ambercode.gui.SuspicionGUI;
 import com.ambercode.logging.FileLogger;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -118,10 +120,12 @@ public class GUIEventListener implements Listener {
                 player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
                 boolean deleteMinerResult = suspicionGUI.getPlayerDataManager().removeMiner(session.minerUUID);
                 if (!databaseResult || !deleteMinerResult) {
+                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_FALL, 1.0f, 1.0f);
                     log.warning("Failed to delete tunnel structure data for UUID " + session.structureUUID);
                 } else {
                     log.info("Successfully deleted tunnel structure data for UUID " + session.structureUUID);
                     player.sendMessage("§aSuccessfully deleted miner data");
+                    player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                 }
                 return;
             } else if (session.mode == SuspicionGUI.GUIMode.UNITS) {
@@ -131,8 +135,10 @@ public class GUIEventListener implements Listener {
                 boolean deleteStructureResult = suspicionGUI.getPlayerDataManager().removeStructure(UUID.fromString(session.structureUUID));
                 if (!databaseResult || !deleteStructureResult) {
                     log.warning("Failed to delete tunnel structure data for UUID " + session.structureUUID);
+                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_FALL, 1.0f, 1.0f);
                 } else {
                     log.info("Successfully deleted tunnel structure data for UUID " + session.structureUUID);
+                    player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                     player.sendMessage("§aSuccessfully deleted tunnel structure data");
                 }
                 return;
@@ -142,16 +148,19 @@ public class GUIEventListener implements Listener {
         // Navigation buttons
         if (slot == 45 && session.currentPage > 0) {
             fileLogger.addLogMessage("[GUI] Prev page clicked.");
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             openSameGUI(player, session, session.currentPage - 1);
             return;
         }
         if (slot == 53 && session.currentPage < session.totalPages - 1) {
             fileLogger.addLogMessage("[GUI] Next page clicked.");
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             openSameGUI(player, session, session.currentPage + 1);
             return;
         }
         if (slot == 51) {
             fileLogger.addLogMessage("[GUI] Refresh clicked.");
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             openSameGUI(player, session, session.currentPage);
             return;
         }
@@ -160,16 +169,19 @@ public class GUIEventListener implements Listener {
         if (session.mode == SuspicionGUI.GUIMode.PLAYERS) {
             if (slot == 47) {
                 fileLogger.addLogMessage("[GUI] Sort by suspicion clicked.");
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                 suspicionGUI.openGUI(player, 0, "suspicion", session.showOnlySuspicious);
                 return;
             }
             if (slot == 48) {
                 fileLogger.addLogMessage("[GUI] Sort by name clicked.");
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                 suspicionGUI.openGUI(player, 0, "name", session.showOnlySuspicious);
                 return;
             }
             if (slot == 52) {
                 fileLogger.addLogMessage("[GUI] Toggle filter clicked.");
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                 suspicionGUI.openGUI(player, 0, session.sortType, !session.showOnlySuspicious);
                 return;
             }
@@ -187,6 +199,7 @@ public class GUIEventListener implements Listener {
                         try {
                             UUID minerUUID = UUID.fromString(info.id);
                             fileLogger.addLogMessage("[GUI] Opening structures for miner=" + minerUUID);
+                            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                             // Schedule for the next tick to avoid race condition
                             Bukkit.getScheduler().runTask(suspicionGUI.getPlugin(), () -> {
                                 suspicionGUI.openStructuresGUI(player, minerUUID, 0);
@@ -198,6 +211,7 @@ public class GUIEventListener implements Listener {
                     }
                     case "structure" -> {
                         fileLogger.addLogMessage("[GUI] Opening units for structure=" + info.id);
+                        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                         // Schedule for the next tick to avoid race condition
                         Bukkit.getScheduler().runTask(suspicionGUI.getPlugin(), () -> {
                             suspicionGUI.openUnitsGUI(player, info.id, 0);
@@ -205,6 +219,7 @@ public class GUIEventListener implements Listener {
                     }
                     case "unit" -> {
                         fileLogger.addLogMessage("[GUI] Unit clicked (no drill-down). ID=" + info.id);
+                        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                         player.sendMessage("§7Tunnel unit clicked. No further drill-down.");
                     }
                     default -> fileLogger.addLogMessage("[GUI] Unknown ClickInfo type=" + info.type);

@@ -24,6 +24,7 @@ import com.ambercode.data.TunnelStructure;
 import com.ambercode.data.TunnelUnit;
 import com.ambercode.logging.FileLogger;
 import com.ambercode.manager.PlayerDataManager;
+import com.ambercode.utils.ErrorComputeReturnCode;
 import com.ambercode.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -323,9 +324,11 @@ public class SuspicionGUI {
                 int totalOres = (int) structure.getMainTunnelPath().getUnits().stream().filter(TunnelUnit::isOre).count();
                 double length = structure.getMainTunnelPath().getUnits().size();
                 long createdAt = structure.getMainTunnelPath().getUnits().getFirst().getMinedAt();
+                double structureSuspicionScore = Utils.calculateXRaySuspicionScore(structure, plugin);
 
                 TunnelUnit tempUnit = structure.getMainTunnelPath().getUnits().getFirst();
-                ItemStack item = tempUnit.getWorldName().contains("nether") ? new ItemStack(Material.NETHERRACK) : new ItemStack(Material.STONE);
+                ItemStack item = structureSuspicionScore >= 0.70d ? new ItemStack(Material.BELL) :
+                        tempUnit.getWorldName().contains("nether") ? new ItemStack(Material.NETHERRACK) : new ItemStack(Material.STONE);
                 ItemMeta meta = item.getItemMeta();
                 meta.setDisplayName("§6Structure §f" + uuid);
 
@@ -334,6 +337,8 @@ public class SuspicionGUI {
                 List<String> lore = new ArrayList<>();
                 lore.add("§bUUID: §f" + uuid);
                 lore.add("§bWorld: §f" + tempUnit.getWorldName());
+                lore.add("§bSuspicion Score: §" + (structureSuspicionScore == ErrorComputeReturnCode.NOT_ENOUGH_DATA.errorNumber ? "6 Not Enough Data"
+                        : ((structureSuspicionScore >= 0.70d ? "c":"a") + String.format("%.2f", structureSuspicionScore) + "/1")));
                 lore.add("§bTotal Blocks: §f" + totalBlocks);
                 lore.add("§bTotal Ores: §f" + totalOres);
                 lore.add("§bOre Density: §f" + DENSITY_FORMAT.format(Utils.averageOreDensity(structure)*100));

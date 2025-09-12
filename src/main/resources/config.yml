@@ -12,3 +12,6 @@ database:
   address: '127.0.0.1'
   db_name: 'minecraft'
   port: 3306
+
+analysis:
+  interval: 10 # how often the database should be scanned for cheaters, in minutes.

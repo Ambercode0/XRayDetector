@@ -18,8 +18,10 @@
 
 package com.ambercode.utils;
 
+import com.ambercode.XRayDetector;
 import com.ambercode.data.TunnelStructure;
 import com.ambercode.data.TunnelUnit;
+import com.ambercode.logging.FileLogger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -208,46 +210,7 @@ public final class Utils {
         return result.toString().trim();
     }
 
-    /**
-     * Calculates how straight a tunnel path is by analyzing the directional changes
-     * between consecutive units. A perfectly straight path (score 1.0) would have all
-     * units in a single line (either X or Z direction). A completely random path would
-     * have a score closer to 0.0.
-     * <p>
-     * The calculation is based on:
-     * 1. Computing direction changes between consecutive units
-     * 2. Analyzing the consistency of these directions
-     * 3. Normalizing the result to a 0-1 scale
-     *
-     * @param units List of TunnelUnit representing the tunnel path. Must contain at least 2 units.
-     * @return A double between 0 and 1, where 1 represents a perfectly straight path
-     * and 0 represents a path with maximum directional changes.
-     * Returns 0 if the list contains fewer than 2 units.
-     */
-    public static double computePathStraightness(@NotNull List<TunnelUnit> units) {
-        if (units.size() < 2) return 0.0;
-
-        int directionChanges = 0;
-        int prevDx = 0;
-        int prevDz = 0;
-
-        for (int i = 1; i < units.size(); i++) {
-            int dx = units.get(i).getX() - units.get(i - 1).getX();
-            int dz = units.get(i).getZ() - units.get(i - 1).getZ();
-
-            if (i > 1 && (dx != prevDx || dz != prevDz)) {
-                directionChanges++;
-            }
-
-            prevDx = dx;
-            prevDz = dz;
-        }
-
-        double maxPossibleChanges = units.size() - 2.0;
-        if (maxPossibleChanges <= 0) return 1.0;
-
-        return Math.max(0.0, 1.0 - (directionChanges / maxPossibleChanges));
-    }
+    
 
     /**
      * Computes the straightness of the main tunnel path within a given tunnel structure.
@@ -264,12 +227,106 @@ public final class Utils {
         return computePathStraightness(structure.getMainTunnelPath().getUnits());
     }
 
+    /**
+     * Finds the next TunnelUnit in the given list that is classified as an ore,
+     * starting the search from a specified index.
+     *
+     * @param units The list of TunnelUnit objects to search through. Must not be null.
+     * @param startIndex The index in the list to start searching from. The search will begin
+     *                   at startIndex + 1 and proceed to the end of the list.
+     * @return The next TunnelUnit that is classified as an ore if found, otherwise null.
+     */
+    private static TunnelUnit findNextOreUnit(@NotNull List<TunnelUnit> units, int startIndex) {
+        for (int i = startIndex + 1; i < units.size(); i++) {
+            if (units.get(i).isOre()) {
+                return units.get(i);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Calculates the change in direction between three consecutive TunnelUnits using their coordinates.
+     * The calculation is based on the angles formed between the vectors of the start-to-middle
+     * and middle-to-end segments.
+     *
+     * @param start The starting TunnelUnit. Must not be null.
+     * @param middle The middle TunnelUnit, acting as the pivot. Must not be null.
+     * @param end The ending TunnelUnit. Must not be null.
+     * @return The smallest change in direction in radians, between 0 and π.
+     */
+    private static double calculateDirectionChange(@NotNull TunnelUnit start, @NotNull TunnelUnit middle, @NotNull TunnelUnit end) {
+        final double angle1 = Math.atan2(middle.getZ() - start.getZ(), middle.getX() - start.getX());
+        final double angle2 = Math.atan2(end.getZ() - middle.getZ(), end.getX() - middle.getX());
+        final double change = Math.abs(angle2 - angle1);
+        return Math.min(change, 2 * Math.PI - change);
+    }
+
+    /**
+     * Computes the straightness of a path in a tunnel based on ore unit direction changes.
+     * The method analyzes sequences of three consecutive ore units to determine the changes
+     * in direction and calculates an average direction change. The result is normalized
+     * to a range of 0 to 1, where 1 indicates a perfectly straight path (no direction change),
+     * and 0 indicates maximum direction changes (PI radians).
+     *
+     * @param units the list of TunnelUnit objects representing the path in the tunnel.
+     *              Each TunnelUnit denotes a segment of the tunnel. Units with ores are
+     *              taken into consideration for computing direction changes.
+     *              Must not be null.
+     *
+     * @return a double value representing the path's straightness, normalized between 0 and 1.
+     *         Specific error codes are returned as:
+     *         - {@code TUNNEL_TOO_SMALL.errorNumber} if the list size is less than 3.
+     *         - {@code NO_ORES.errorNumber} if no TunnelUnit containing ore is found.
+     *         - {@code ONLY_ONE_ORE.errorNumber} if only one TunnelUnit containing ore is found.
+     */
+    public static double computePathStraightness(@NotNull List<TunnelUnit> units) {
+        if (units.size() < 3) return ErrorComputeReturnCode.TUNNEL_TOO_SMALL.errorNumber;
+
+        List<Double> directionChanges = new ArrayList<>();
+        TunnelUnit current = null;
+
+        // Find the first ore unit
+        for (TunnelUnit unit : units) {
+            if (unit.isOre()) {
+                current = unit;
+                break;
+            }
+        }
+
+        if (current == null) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+
+        // Analyze direction changes between sequences of three ore units
+        while (true) {
+            TunnelUnit next = findNextOreUnit(units, units.indexOf(current));
+            if (next == null) break;
+
+            TunnelUnit afterNext = findNextOreUnit(units, units.indexOf(next));
+            if (afterNext == null) break;
+
+            directionChanges.add(calculateDirectionChange(current, next, afterNext));
+            current = next;
+        }
+
+        if (directionChanges.isEmpty()) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
+
+        // Calculate average direction change and normalize to 0-1 range
+        // where 1 means perfectly straight (0 direction change)
+        // and 0 means maximum direction changes (PI radians)
+        double avgDirectionChange = directionChanges.stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
+
+        return 1.0 - (avgDirectionChange / Math.PI);
+    }
+
     private static final double DIAMOND_DENSITY_WEIGHT = 0.3;
     private static final double TIME_PATTERN_WEIGHT = 0.25;
     private static final double EXPOSURE_WEIGHT = 0.25;
     private static final double PATH_CHARACTERISTICS_WEIGHT = 0.2;
 
-    private static final double SUSPICIOUS_DIAMOND_RATIO = 0.015; // ~1.50% is suspicious
+    private static final double SUSPICIOUS_DIAMOND_RATIO = 0.0147; // ~1.50% is suspicious
     private static final long SUSPICIOUS_TIME_INTERVAL = 20000; // 20 seconds
     private static final double SUSPICIOUS_UNEXPOSED_RATIO = 0.7; // 70% unexposed is suspicious
     private static final double SUSPICIOUS_PATH_STRAIGHTNESS = 0.8; // Very straight paths are suspicious
@@ -284,11 +341,19 @@ public final class Utils {
      * @param structure The tunnel structure to analyze
      * @return A suspicion score between 0 and 1, where higher values indicate more suspicious behavior
      */
-    public static double calculateXRaySuspicionScore(@NotNull TunnelStructure structure) {
+    public static double calculateXRaySuspicionScore(@NotNull TunnelStructure structure, @NotNull XRayDetector plugin) {
         double diamondDensityScore = calculateDiamondDensityScore(structure);
         double timePatternScore = calculateTimePatternScore(structure);
         double exposureScore = calculateExposureScore(structure);
         double pathScore = calculatePathScore(structure);
+
+        FileLogger fileLogger = plugin.getFileLogger();
+        fileLogger.addLogMessage(String.format("Tunnel %s scores - Diamond Density: %.2f, Time Pattern: %.2f, Exposure: %.2f, Path: %.2f",
+                structure.getUuid(), diamondDensityScore, timePatternScore, exposureScore, pathScore));
+
+        if (diamondDensityScore < 0 || timePatternScore < 0 || exposureScore < 0 || pathScore < 0) {
+            return ErrorComputeReturnCode.NOT_ENOUGH_DATA.errorNumber;
+        }
 
         return (diamondDensityScore * DIAMOND_DENSITY_WEIGHT) +
                 (timePatternScore * TIME_PATTERN_WEIGHT) +
@@ -322,6 +387,9 @@ public final class Utils {
         }
 
         if (totalBlocks == 0) return 0;
+        if (diamondCount == 0) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+        if (diamondCount <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
+
         double ratio = (double) diamondCount / totalBlocks;
         return Math.min(1.0, ratio / SUSPICIOUS_DIAMOND_RATIO);
     }
@@ -346,7 +414,8 @@ public final class Utils {
             }
         }
 
-        if (diamondTimes.size() < 2) return 0;
+        if (diamondTimes.isEmpty()) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+        if (diamondTimes.size() <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
 
         Collections.sort(diamondTimes);
         int suspiciousIntervals = 0;
@@ -383,7 +452,8 @@ public final class Utils {
             }
         }
 
-        if (totalDiamonds == 0) return 0;
+        if (totalDiamonds == 0) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+        if (totalDiamonds <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
         double unexposedRatio = (double) unexposedDiamonds / totalDiamonds;
         return unexposedRatio >= SUSPICIOUS_UNEXPOSED_RATIO ? 1.0 :
                 unexposedRatio / SUSPICIOUS_UNEXPOSED_RATIO;
@@ -399,8 +469,7 @@ public final class Utils {
      */
     private static double calculatePathScore(@NotNull TunnelStructure structure) {
         double straightness = computePathStraightness(structure);
-        return straightness >= SUSPICIOUS_PATH_STRAIGHTNESS ? 1.0 :
-                straightness / SUSPICIOUS_PATH_STRAIGHTNESS;
+        return straightness >= SUSPICIOUS_PATH_STRAIGHTNESS ? 1.0 : straightness / SUSPICIOUS_PATH_STRAIGHTNESS;
     }
 
 
