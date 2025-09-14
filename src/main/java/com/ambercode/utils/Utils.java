@@ -19,6 +19,8 @@
 package com.ambercode.utils;
 
 import com.ambercode.XRayDetector;
+import com.ambercode.data.Miner;
+import com.ambercode.data.TunnelPath;
 import com.ambercode.data.TunnelStructure;
 import com.ambercode.data.TunnelUnit;
 import com.ambercode.logging.FileLogger;
@@ -113,8 +115,8 @@ public final class Utils {
     public static boolean isExposedToAir(@NotNull TunnelUnit tunnelUnit, @Nullable TunnelStructure tunnelStructure, @NotNull Block minedBlock) {
 
         if (tunnelStructure == null) {
-            for (BlockFace face : ADJACENT_DIRECTIONS) {
-                Material relativeMaterial = minedBlock.getRelative(face).getType();
+            for (final BlockFace face : ADJACENT_DIRECTIONS) {
+                final Material relativeMaterial = minedBlock.getRelative(face).getType();
                 if (relativeMaterial == Material.AIR || relativeMaterial == Material.CAVE_AIR) {
                     return true;
                 }
@@ -123,7 +125,7 @@ public final class Utils {
         }
 
         for (final TunnelUnit tempUnit : tunnelStructure.getMainTunnelPath().getUnits())
-            if (Utils.manhattanDistance2D(tempUnit, tunnelUnit) == 1 && tempUnit.isExposedToAir() && tempUnit.isOre())
+            if (tunnelUnit.isOre() && Utils.manhattanDistance2D(tempUnit, tunnelUnit) == 1 && tempUnit.isExposedToAir() && tempUnit.isOre())
                 return true;
 
         return false;
@@ -140,7 +142,7 @@ public final class Utils {
      */
     public static double averageOreDensity(@NotNull TunnelStructure structure) {
         int oreCount = 0;
-        for (TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
             if (unit.isOre()) {
                 oreCount++;
             }
@@ -237,11 +239,9 @@ public final class Utils {
      * @return The next TunnelUnit that is classified as an ore if found, otherwise null.
      */
     private static TunnelUnit findNextOreUnit(@NotNull List<TunnelUnit> units, int startIndex) {
-        for (int i = startIndex + 1; i < units.size(); i++) {
-            if (units.get(i).isOre()) {
+        for (int i = startIndex + 1; i < units.size(); i++)
+            if (units.get(i).isOre())
                 return units.get(i);
-            }
-        }
         return null;
     }
 
@@ -283,11 +283,11 @@ public final class Utils {
     public static double computePathStraightness(@NotNull List<TunnelUnit> units) {
         if (units.size() < 3) return ErrorComputeReturnCode.TUNNEL_TOO_SMALL.errorNumber;
 
-        List<Double> directionChanges = new ArrayList<>();
+        final List<Double> directionChanges = new ArrayList<>();
         TunnelUnit current = null;
 
         // Find the first ore unit
-        for (TunnelUnit unit : units) {
+        for (final TunnelUnit unit : units) {
             if (unit.isOre()) {
                 current = unit;
                 break;
@@ -298,10 +298,10 @@ public final class Utils {
 
         // Analyze direction changes between sequences of three ore units
         while (true) {
-            TunnelUnit next = findNextOreUnit(units, units.indexOf(current));
+            final TunnelUnit next = findNextOreUnit(units, units.indexOf(current));
             if (next == null) break;
 
-            TunnelUnit afterNext = findNextOreUnit(units, units.indexOf(next));
+            final TunnelUnit afterNext = findNextOreUnit(units, units.indexOf(next));
             if (afterNext == null) break;
 
             directionChanges.add(calculateDirectionChange(current, next, afterNext));
@@ -326,10 +326,18 @@ public final class Utils {
     private static final double EXPOSURE_WEIGHT = 0.25;
     private static final double PATH_CHARACTERISTICS_WEIGHT = 0.2;
 
-    private static final double SUSPICIOUS_DIAMOND_RATIO = 0.0147; // ~1.50% is suspicious
+    // Overall analysis weights
+    private static final double RECENT_TUNNELS_WEIGHT = 0.6;
+    private static final double HISTORICAL_TUNNELS_WEIGHT = 0.4;
+    private static final double TUNNEL_COUNT_THRESHOLD = 3;
+    private static final long RECENT_TUNNEL_THRESHOLD = 3600000; // 1 hour in milliseconds
+
+    private static final double SUSPICIOUS_DIAMOND_RATIO = 0.0147; // ~1.47% is suspicious
     private static final long SUSPICIOUS_TIME_INTERVAL = 20000; // 20 seconds
-    private static final double SUSPICIOUS_UNEXPOSED_RATIO = 0.7; // 70% unexposed is suspicious
+    private static final double SUSPICIOUS_UNEXPOSED_RATIO = 0.75; // 70% unexposed is suspicious
     private static final double SUSPICIOUS_PATH_STRAIGHTNESS = 0.8; // Very straight paths are suspicious
+    
+    
 
     /**
      * Calculates an overall suspicion score for potential X-Ray usage based on multiple factors:
@@ -342,18 +350,24 @@ public final class Utils {
      * @return A suspicion score between 0 and 1, where higher values indicate more suspicious behavior
      */
     public static double calculateXRaySuspicionScore(@NotNull TunnelStructure structure, @NotNull XRayDetector plugin) {
-        double diamondDensityScore = calculateDiamondDensityScore(structure);
-        double timePatternScore = calculateTimePatternScore(structure);
-        double exposureScore = calculateExposureScore(structure);
-        double pathScore = calculatePathScore(structure);
+        final double diamondDensityScore = calculateDiamondDensityScore(structure);
+        final double timePatternScore = calculateTimePatternScore(structure);
+        final double exposureScore = calculateExposureScore(structure);
+        final double pathScore = calculatePathScore(structure);
 
         FileLogger fileLogger = plugin.getFileLogger();
         fileLogger.addLogMessage(String.format("Tunnel %s scores - Diamond Density: %.2f, Time Pattern: %.2f, Exposure: %.2f, Path: %.2f",
                 structure.getUuid(), diamondDensityScore, timePatternScore, exposureScore, pathScore));
 
-        if (diamondDensityScore < 0 || timePatternScore < 0 || exposureScore < 0 || pathScore < 0) {
-            return ErrorComputeReturnCode.NOT_ENOUGH_DATA.errorNumber;
-        }
+        if (diamondDensityScore < 0) return ErrorComputeReturnCode.getErrorByNumber((int) diamondDensityScore).errorNumber;
+
+        if (timePatternScore < 0) return ErrorComputeReturnCode.getErrorByNumber((int) timePatternScore).errorNumber;
+
+        if (exposureScore < 0) return ErrorComputeReturnCode.getErrorByNumber((int) exposureScore).errorNumber;
+
+        if (pathScore < 0) return ErrorComputeReturnCode.getErrorByNumber((int) pathScore).errorNumber;
+
+        if (isTunnelMiningExposedOreVein(structure)) return ErrorComputeReturnCode.IS_EXPOSED_VEIN_SHORT_TUNNEL.errorNumber;
 
         return (diamondDensityScore * DIAMOND_DENSITY_WEIGHT) +
                 (timePatternScore * TIME_PATTERN_WEIGHT) +
@@ -375,8 +389,8 @@ public final class Utils {
         long totalBlocks = 0;
         long diamondCount = 0;
 
-        for (TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
-            Material material = unit.getMaterial();
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+            final Material material = unit.getMaterial();
             if (material == Material.STONE || material == Material.DEEPSLATE ||
                     material == Material.DIAMOND_ORE || material == Material.DEEPSLATE_DIAMOND_ORE) {
                 totalBlocks++;
@@ -405,9 +419,9 @@ public final class Utils {
      *         Returns 0.0 if fewer than two diamond ores are found.
      */
     private static double calculateTimePatternScore(@NotNull TunnelStructure structure) {
-        List<Long> diamondTimes = new ArrayList<>();
+        final List<Long> diamondTimes = new ArrayList<>();
 
-        for (TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
             if (unit.getMaterial() == Material.DIAMOND_ORE ||
                     unit.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE) {
                 diamondTimes.add(unit.getMinedAt());
@@ -442,7 +456,7 @@ public final class Utils {
         int totalDiamonds = 0;
         int unexposedDiamonds = 0;
 
-        for (TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
             if (unit.getMaterial() == Material.DIAMOND_ORE ||
                     unit.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE) {
                 totalDiamonds++;
@@ -472,5 +486,64 @@ public final class Utils {
         return straightness >= SUSPICIOUS_PATH_STRAIGHTNESS ? 1.0 : straightness / SUSPICIOUS_PATH_STRAIGHTNESS;
     }
 
+    /**
+     * Determines if a tunnel mining operation has exposed a significant portion of an ore vein.
+     * <p>
+     * This method evaluates the main tunnel path within the provided tunnel structure and determines if the exposed ore
+     * vein meets the criteria. The criteria include the tunnel path having fewer than or equal to 10 units
+     * and at least 60% of those units being ore that is exposed to air.
+     *
+     * @param structure the tunnel structure to analyze, which contains the main tunnel path and its units.
+     *                  Must not be null.
+     * @return true if the tunnel path has 10 or fewer units and at least 60% of those units are exposed ores;
+     *         false otherwise.
+     */
+    public static boolean isTunnelMiningExposedOreVein(@NotNull TunnelStructure structure) {
+        TunnelPath tunnelPath = structure.getMainTunnelPath();
+        int size = tunnelPath.getUnits().size();
+        int ores = (int) tunnelPath.getUnits().stream().filter(TunnelUnit::isOre).count();
+        int oresAndExposed = (int) tunnelPath.getUnits().stream().filter(TunnelUnit::isOre).filter(TunnelUnit::isExposedToAir).count();
+        return size <= 10 && (double) oresAndExposed / size >= 0.6f;
+    }
+
+    /**
+     * Calculates an overall suspicion score for a miner by analyzing all their tunnel structures.
+     * The analysis weighs recent tunnels more heavily than historical ones and considers:
+     * - Individual tunnel suspicion scores
+     * - Patterns across multiple tunnels
+     * - Time-based analysis of mining behavior
+     *
+     * @param miner  The miner whose tunnels are to be analyzed
+     * @param plugin The XRayDetector plugin instance
+     * @return A suspicion score between 0 and 1, where higher values indicate more suspicious behavior
+     */
+    public static double calculateOverallMinerSuspicionScore(@NotNull Miner miner, @NotNull XRayDetector plugin) {
+        final List<TunnelStructure> tunnels = miner.getCreatedTunnels();
+        if (tunnels.size() < TUNNEL_COUNT_THRESHOLD) {
+            return ErrorComputeReturnCode.NOT_ENOUGH_DATA.errorNumber;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        final List<Double> recentScores = new ArrayList<>();
+        final List<Double> historicalScores = new ArrayList<>();
+
+        // Categorize and calculate scores for each tunnel
+        for (final TunnelStructure tunnel : tunnels) {
+            double score = calculateXRaySuspicionScore(tunnel, plugin);
+            if (score < 0) continue; // Skip invalid scores
+
+            if (currentTime - tunnel.getMainTunnelPath().getUnits().getFirst().getMinedAt() < RECENT_TUNNEL_THRESHOLD) {
+                recentScores.add(score);
+            } else {
+                historicalScores.add(score);
+            }
+        }
+
+        // Calculate weighted average of recent and historical scores
+        double recentAverage = recentScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        double historicalAverage = historicalScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+
+        return (recentAverage * RECENT_TUNNELS_WEIGHT) + (historicalAverage * HISTORICAL_TUNNELS_WEIGHT);
+    }
 
 }

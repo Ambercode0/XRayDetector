@@ -21,6 +21,7 @@ package com.ambercode.config;
 import com.ambercode.XRayDetector;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The StandardConfig class provides utility methods to access and manage the
@@ -139,5 +140,70 @@ public class StandardConfig {
      */
     public long getAnalysisInterval() {
         return config.getLong("analysis.interval");
+    }
+
+    /**
+     * Checks if automatic punishment is enabled for analysis based on the configuration settings.
+     * The method retrieves the value of the "analysis.auto-punish.enabled" key from the configuration.
+     *
+     * @return true if automatic punishment for analysis is enabled, false otherwise.
+     */
+    public boolean isAnalysisAutoPunishEnabled() {
+        return config.getBoolean("analysis.auto-punish.enabled");
+    }
+
+    /**
+     * Retrieves the threshold value configured for automatic punishment in analysis.
+     * The value is used to determine the minimum threshold for triggering automatic punishment actions.
+     *
+     * @return the threshold value for analysis automatic punishment as a double.
+     */
+    public double getAnalysisAutoPunishThreshold() {
+        return config.getDouble("analysis.auto-punish.threshold");
+    }
+
+    /**
+     * Retrieves the reason specified in the configuration for automatically punishing
+     * players as part of the analysis process.
+     * If the configuration does not specify a reason, the method will return null.
+     *
+     * @return the reason for automatic punishment as a string, or null if not configured
+     */
+    @Nullable
+    public String getAnalysisAutoPunishReason() {
+        return config.getString("analysis.auto-punish.reason");
+    }
+
+    /**
+     * Retrieves the command configured for the automatic punishment process during analysis.
+     * The command is retrieved from the "analysis.auto-punish.command" entry in the configuration.
+     *
+     * @return the command as a string, or null if it is not configured
+     */
+    @Nullable
+    public String getAnalysisAutoPunishCommand() {
+        return config.getString("analysis.auto-punish.command");
+    }
+
+    /**
+     * Retrieves the configured threshold value for adding suspects to the analysis GUI.
+     * The value is obtained from the configuration file under the key "analysis.suspects-gui.add-threshold".
+     *
+     * @return the threshold value for adding suspects to the analysis GUI as a string,
+     *         or null if the value is not configured.
+     */
+    public double getAnalysisSuspectsGuiAddThreshold() {
+        return config.getDouble("analysis.suspects-gui.add-threshold");
+    }
+
+    /**
+     * Retrieves the message or configuration value for warning administrators via chat,
+     * as specified in the configuration file.
+     * The value is fetched from the "analysis.suspects-gui.chat-warn-administrators" key.
+     *
+     * @return the chat warning message for administrators as a string, or null if not configured
+     */
+    public boolean getAnalysisSuspectsGuiChatWarnAdministrators() {
+        return config.getBoolean("analysis.suspects-gui.chat-warn-administrators");
     }
 }

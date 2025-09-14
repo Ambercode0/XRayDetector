@@ -52,7 +52,7 @@ public class PeriodicAnalyzer {
             return;
         }
 
-        final long delay = config.getAnalysisInterval() * 60L * 20L;
+        long delay = config.getAnalysisInterval() * 60L * 20L;
         Runnable runnable = new PeriodicAnalysisTask(xRayDetector);
         task = xRayDetector.getServer().getScheduler().runTaskTimerAsynchronously(xRayDetector, runnable, delay, delay);
         running = true;

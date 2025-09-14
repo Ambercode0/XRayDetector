@@ -34,7 +34,7 @@ public class Miner {
 
     private final UUID uuid;
     private final List<TunnelStructure> createdTunnels = new ArrayList<>();
-    private final double suspicionScore = 0.00;
+    private double suspicionScore = 0.00;
 
     public Miner(@NotNull UUID uuid) {
         this.uuid = uuid;
@@ -48,7 +48,11 @@ public class Miner {
      */
     @Nullable
     public TunnelStructure getTunnelStructure(@NotNull UUID uuid) {
-        return  createdTunnels.stream().filter(t -> t.getUuid().equals(uuid)).findAny().orElse(null);
+      // return createdTunnels.stream().filter(t -> t.getUuid().equals(uuid)).findAny().orElse(null);
+        for (final TunnelStructure structure : createdTunnels)
+            if (structure.getUuid().equals(uuid))
+                return structure;
+        return null;
     }
 
     /**
@@ -89,8 +93,8 @@ public class Miner {
      */
     public int getDiscoveredOreVeins() {
         int counter = 0;
-        for (TunnelStructure structure : createdTunnels)
-            for (TunnelUnit unit : structure.getMainTunnelPath().getUnits())
+        for (final TunnelStructure structure : createdTunnels)
+            for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits())
                 if (unit.isOre())
                     counter++;
 
@@ -103,6 +107,20 @@ public class Miner {
      * @return the number of blocks mined as an integer.
      */
     public int getMinedBlocks() {
-        return +0;
+        int counter = 0;
+        for (final TunnelStructure createdTunnel : getCreatedTunnels())
+            counter += createdTunnel.getMainTunnelPath().getUnits().size();
+        return counter;
+    }
+
+
+    /**
+     * Sets the suspicion score for this miner. The suspicion score is a measure
+     * of potentially suspicious activity associated with the miner.
+     *
+     * @param suspicionScore the new suspicion score, represented as a double value
+     */
+    public void setSuspicionScore(double suspicionScore) {
+        this.suspicionScore = suspicionScore;
     }
 }

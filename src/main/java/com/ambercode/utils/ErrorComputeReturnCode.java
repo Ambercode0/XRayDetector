@@ -18,16 +18,32 @@
 
 package com.ambercode.utils;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public enum ErrorComputeReturnCode {
-    NOT_ENOUGH_DATA(-5),
-    NO_ORES(-2),
-    ONLY_ONE_ORE(-4),
-    NO_DIAMONDS(-3),
-    TUNNEL_TOO_SMALL(-1);
+    IS_EXPOSED_VEIN_SHORT_TUNNEL(-6, "The tunnel is an exposed vein"),
+    NOT_ENOUGH_DATA(-5, "Not enough data to compute"),
+    NO_ORES(-2, "No ores found in tunnel"),
+    ONLY_ONE_ORE(-4, "Only one ore found in tunnel"),
+    NO_DIAMONDS(-3, "No diamonds found in tunnel"),
+    TUNNEL_TOO_SMALL(-1, "Tunnel is too small");
 
     public final int errorNumber;
+    public final String displayText;
 
-    ErrorComputeReturnCode(int errorNumber) {
+    ErrorComputeReturnCode(int errorNumber, @NotNull String displayText) {
         this.errorNumber = errorNumber;
+        this.displayText = displayText;
+    }
+
+    @Nullable
+    public static ErrorComputeReturnCode getErrorByNumber(int number) {
+        for (ErrorComputeReturnCode errorCode : ErrorComputeReturnCode.values()) {
+            if (errorCode.errorNumber == number) {
+                return errorCode;
+            }
+        }
+        return null;
     }
 }

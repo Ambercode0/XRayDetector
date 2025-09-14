@@ -337,11 +337,11 @@ public class SuspicionGUI {
                 List<String> lore = new ArrayList<>();
                 lore.add("§bUUID: §f" + uuid);
                 lore.add("§bWorld: §f" + tempUnit.getWorldName());
-                lore.add("§bSuspicion Score: §" + (structureSuspicionScore == ErrorComputeReturnCode.NOT_ENOUGH_DATA.errorNumber ? "6 Not Enough Data"
+                lore.add("§bSuspicion Score: §a" + (structureSuspicionScore < 0 ? ErrorComputeReturnCode.getErrorByNumber((int) structureSuspicionScore)
                         : ((structureSuspicionScore >= 0.70d ? "c":"a") + String.format("%.2f", structureSuspicionScore) + "/1")));
                 lore.add("§bTotal Blocks: §f" + totalBlocks);
                 lore.add("§bTotal Ores: §f" + totalOres);
-                lore.add("§bOre Density: §f" + DENSITY_FORMAT.format(Utils.averageOreDensity(structure)*100));
+                lore.add("§bOre Density: §f" + DENSITY_FORMAT.format(Utils.averageOreDensity(structure)*100) + "%");
                 lore.add("§bAvg. Ore Find Time: §f" + (avgTimePerOre != 0 ? Utils.formatTimeDifference(avgTimePerOre) : "Unavailable"));
                 lore.add("§bCreated: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
                 lore.add("");

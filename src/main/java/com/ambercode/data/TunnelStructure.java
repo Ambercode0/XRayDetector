@@ -84,7 +84,9 @@ public class TunnelStructure {
      * @return true if the specified TunnelUnit is contained in the main tunnel path, false otherwise
      */
     public boolean isContained(@NotNull TunnelUnit tunnelUnit) {
-        return this.mainTunnelPath.getUnits().stream().anyMatch(tunnelUnit::equals);
+        for (final TunnelUnit unit : this.mainTunnelPath.getUnits())
+            if (unit.equals(tunnelUnit)) return true;
+        return false;
     }
 
     /**
@@ -97,7 +99,10 @@ public class TunnelStructure {
      */
     @Nullable
     public TunnelUnit getContained(@NotNull TunnelUnit tunnelUnit) {
-        return this.mainTunnelPath.getUnits().stream().filter(tunnelUnit::equals).findAny().get();
+        for (final TunnelUnit unit : this.mainTunnelPath.getUnits())
+            if (tunnelUnit.equals(unit))
+                return unit;
+        return null;
     }
 
     /**

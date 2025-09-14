@@ -14,4 +14,12 @@ database:
   port: 3306
 
 analysis:
-  interval: 10 # how often the database should be scanned for cheaters, in minutes.
+  interval: 30 # how often the database should be scanned for cheaters, in minutes.
+  auto-punish:
+    enabled: false # enable/disable auto-punishment at your own risk, we are not responsible for any false positives.
+    threshold: 0.805
+    reason: 'You have been banned for X-Ray Cheating'
+    command: 'ban %player% %reason%'
+  suspects-gui:
+    add-threshold: 0.605
+    chat-warn-administrators: true

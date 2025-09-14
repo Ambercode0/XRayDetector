@@ -18,9 +18,9 @@
 
 package com.ambercode.listeners;
 
+import com.ambercode.gui.FlaggedGUI;
 import com.ambercode.gui.SuspicionGUI;
 import com.ambercode.logging.FileLogger;
-import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -40,11 +40,13 @@ import java.util.logging.Logger;
 public class GUIEventListener implements Listener {
 
     private final SuspicionGUI suspicionGUI;
+    private final FlaggedGUI flaggedGUI;
     private final FileLogger fileLogger;
     private final Logger log;
 
-    public GUIEventListener(@NotNull SuspicionGUI suspicionGUI, @NotNull FileLogger fileLogger) {
+    public GUIEventListener(@NotNull SuspicionGUI suspicionGUI, FlaggedGUI flaggedGUI, @NotNull FileLogger fileLogger) {
         this.suspicionGUI = suspicionGUI;
+        this.flaggedGUI = flaggedGUI;
         this.fileLogger = fileLogger;
         this.log = suspicionGUI.getPlugin().getLogger();
     }
@@ -57,7 +59,7 @@ public class GUIEventListener implements Listener {
      * @return true if the title is not null and starts with the base title of the custom GUI; false otherwise.
      */
     private boolean isOurGUI(String title) {
-        boolean result = title != null && title.startsWith(SuspicionGUI.GUI_BASE_TITLE);
+        boolean result = title != null && (title.startsWith(SuspicionGUI.GUI_BASE_TITLE) || title.startsWith(FlaggedGUI.INV_TITLE));
         fileLogger.addLogMessage("[GUI] isOurGUI check: title='" + title + "' base='" + SuspicionGUI.GUI_BASE_TITLE + "' result=" + result);
         return result;
     }
@@ -276,7 +278,8 @@ public class GUIEventListener implements Listener {
         String title = event.getView().getTitle();
         fileLogger.addLogMessage("[GUI] Inventory close event: player=" + player.getName() + " title='" + title + "'");
 
-        if (isOurGUI(title) && suspicionGUI.getSession(player.getUniqueId()).inventory == event.getInventory()) {
+        if (isOurGUI(title) && suspicionGUI.getSession(player.getUniqueId()) != null
+                && suspicionGUI.getSession(player.getUniqueId()).inventory == event.getInventory()) {
             fileLogger.addLogMessage("[GUI] Closing session for " + player.getName() + " UUID=" + player.getUniqueId());
             suspicionGUI.closeSession(player.getUniqueId());
             fileLogger.addLogMessage("[GUI] Session closed for " + player.getName() + " GUI=" + title);

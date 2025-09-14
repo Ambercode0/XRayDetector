@@ -21,6 +21,7 @@ package com.ambercode.command;
 import com.ambercode.data.Miner;
 import com.ambercode.data.TunnelStructure;
 import com.ambercode.data.TunnelUnit;
+import com.ambercode.gui.FlaggedGUI;
 import com.ambercode.gui.SuspicionGUI;
 import com.ambercode.manager.PlayerDataManager;
 import com.ambercode.utils.TunnelPathFinder;
@@ -52,10 +53,12 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
 
     private final PlayerDataManager playerDataManager;
     private final SuspicionGUI suspicionGUI;
+    private final FlaggedGUI flaggedGUI;
 
-    public XRayDetectorCommand(PlayerDataManager playerDataManager, SuspicionGUI suspicionGUI) {
+    public XRayDetectorCommand(PlayerDataManager playerDataManager, SuspicionGUI suspicionGUI, FlaggedGUI flaggedGUI) {
         this.playerDataManager = playerDataManager;
         this.suspicionGUI = suspicionGUI;
+        this.flaggedGUI = flaggedGUI;
     }
 
     /**
@@ -116,8 +119,8 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
 
             suspicionGUI.openGUI(player, page, sortType, showOnlySuspicious);
             return true;
-        } else if (args[0].equalsIgnoreCase("view")) {
-            // highlightOptimisedPath(player);
+        } else if (args[0].equalsIgnoreCase("suspects")) {
+            flaggedGUI.openGui(player);
             return true;
         }
 
@@ -130,7 +133,7 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
      * this method provides context-specific suggestions to assist the user in
      * completing their command input.
      *
-     * @param sender  the source of the command, could be a player or the console
+     * @param sender  the source of the command could be a player or the console
      * @param command the command being executed
      * @param alias   the alias used for the command
      * @param args    the arguments already entered by the user
@@ -140,7 +143,7 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("list");
+            return List.of("list", "suspects");
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("list")) {

@@ -25,6 +25,7 @@ import com.ambercode.database.DatabaseType;
 import com.ambercode.database.MySQLDatabase;
 import com.ambercode.database.PluginDatabase;
 import com.ambercode.database.SQLiteDatabase;
+import com.ambercode.gui.FlaggedGUI;
 import com.ambercode.gui.SuspicionGUI;
 import com.ambercode.listeners.GUIEventListener;
 import com.ambercode.listeners.TunnelTrackingListener;
@@ -89,6 +90,7 @@ public class XRayDetector extends JavaPlugin {
     private PluginDatabase pluginDatabase = null;
 
     private SuspicionGUI suspicionGUI = null;
+    private FlaggedGUI flaggedGUI = null;
     private PeriodicAnalyzer periodicAnalyzer = null;
 
 
@@ -253,7 +255,7 @@ public class XRayDetector extends JavaPlugin {
      * {@code onEnable} method, to ensure the command is operational when the plugin is enabled.
      */
     private void setupCommands() {
-        XRayDetectorCommand xRayDetectorCommand = new XRayDetectorCommand(playerDataManager, suspicionGUI);
+        XRayDetectorCommand xRayDetectorCommand = new XRayDetectorCommand(playerDataManager, suspicionGUI, flaggedGUI);
         Objects.requireNonNull(getCommand("xraydetector")).setExecutor(xRayDetectorCommand);
         Objects.requireNonNull(getCommand("xraydetector")).setTabCompleter(xRayDetectorCommand);
     }
@@ -288,7 +290,8 @@ public class XRayDetector extends JavaPlugin {
     private void setupListeners() {
         getServer().getPluginManager().registerEvents(new TunnelTrackingListener(fileLogger, playerDataManager, this), this);
         suspicionGUI = new SuspicionGUI(playerDataManager, this);
-        getServer().getPluginManager().registerEvents(new GUIEventListener(suspicionGUI, fileLogger), this);
+        flaggedGUI = new FlaggedGUI(this);
+        getServer().getPluginManager().registerEvents(new GUIEventListener(suspicionGUI, flaggedGUI, fileLogger), this);
     }
 
     /**
