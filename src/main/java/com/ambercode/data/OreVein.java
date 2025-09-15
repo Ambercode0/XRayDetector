@@ -2,16 +2,18 @@ package com.ambercode.data;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class OreVein {
     private final UUID id = UUID.randomUUID();
     private final List<TunnelUnit> units = new ArrayList<>();
 
-    @NotNull public UUID id() { return id; }
+    public OreVein() { }
+    public OreVein(@NotNull Collection<TunnelUnit> units) {
+        this.units.addAll(units);
+    }
+
+    @NotNull public UUID getUuid() { return id; }
     @NotNull public List<TunnelUnit> units() { return Collections.unmodifiableList(units); }
 
     protected boolean contains(@NotNull TunnelUnit u) { return units.contains(u); }

@@ -19,10 +19,7 @@
 package com.ambercode.database;
 
 import com.ambercode.XRayDetector;
-import com.ambercode.data.Miner;
-import com.ambercode.data.TunnelPath;
-import com.ambercode.data.TunnelStructure;
-import com.ambercode.data.TunnelUnit;
+import com.ambercode.data.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -62,6 +59,21 @@ public class MySQLDatabase extends HikariPluginDatabase {
 
     @Override
     public void insertMiner(@NotNull Miner miner) {
+
+    }
+
+    @Override
+    public void insertOreVein(@NotNull OreVein oreVein) {
+
+    }
+
+    @Override
+    public void updateTunnelUnitMaterial(@NotNull TunnelUnit tunnelUnit, @NotNull String newMaterial) {
+
+    }
+
+    @Override
+    public void updateTunnelUnitOreVein(@NotNull TunnelUnit tunnelUnit, @NotNull OreVein oreVein) {
 
     }
 

@@ -19,10 +19,7 @@
 package com.ambercode.database;
 
 import com.ambercode.XRayDetector;
-import com.ambercode.data.Miner;
-import com.ambercode.data.TunnelPath;
-import com.ambercode.data.TunnelStructure;
-import com.ambercode.data.TunnelUnit;
+import com.ambercode.data.*;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
@@ -174,8 +171,13 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_mined_at ON tunnel_units(mined_at);
             """;
 
-        /**
-         * SQL query string used to retrieve and cache all hierarchical data related to miners,
+    private static final String INSERT_VEIN = """
+            INSERT INTO veins (uuid, created_at)
+            VALUES (?, CURRENT_TIMESTAMP);
+            """;
+
+    /**
+     * SQL query string used to retrieve and cache all hierarchical data related to miners,
          * including associated tunnel structures, paths, and units, from the database.
          * <p>
          * This query is designed to perform multiple left joins across the `miners`, `tunnel_structures`,
@@ -738,5 +740,56 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
             }
         }
 
+    @Override
+    public void insertOreVein(@NotNull OreVein oreVein) {
+        final String methodName = "insertOreVein";
+
+        try (PreparedStatement ps = connection.prepareStatement(INSERT_VEIN)) {
+            ps.setString(1, oreVein.getUuid().toString());
+            ps.executeUpdate();
+        } catch (SQLException exception) {
+            logError(methodName, "Error inserting ore vein", exception);
+        }
+    }
+
+    private static final String UPDATE_UNIT_VEIN = """
+            UPDATE tunnel_units\s
+            SET vein_uuid = ?
+            WHERE world_name = ? AND x = ? AND z = ?;
+           \s""";
+
+    @Override
+    public void updateTunnelUnitOreVein(@NotNull TunnelUnit tunnelUnit, @NotNull OreVein oreVein) {
+        final String methodName = "updateTunnelUnitOreVein";
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_UNIT_VEIN)) {
+            ps.setString(1, oreVein.getUuid().toString());
+            ps.setString(2, tunnelUnit.getWorldName());
+            ps.setInt(3, tunnelUnit.getX());
+            ps.setInt(4, tunnelUnit.getZ());
+            ps.executeUpdate();
+        } catch (SQLException exception) {
+            logError(methodName, "Error updating tunnel unit ore vein", exception);
+        }
+    }
+
+    private static final String UPDATE_UNIT_MATERIAL = """
+            UPDATE tunnel_units
+            SET material = ?
+            WHERE world_name = ? AND x = ? AND z = ?;
+            """;
+
+    @Override
+    public void updateTunnelUnitMaterial(@NotNull TunnelUnit tunnelUnit, @NotNull String newMaterial) {
+        final String methodName = "updateTunnelUnitMaterial";
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_UNIT_MATERIAL)) {
+            ps.setString(1, newMaterial);
+            ps.setString(2, tunnelUnit.getWorldName());
+            ps.setInt(3, tunnelUnit.getX());
+            ps.setInt(4, tunnelUnit.getZ());
+            ps.executeUpdate();
+        } catch (SQLException exception) {
+            logError(methodName, "Error updating tunnel unit material", exception);
+        }
+    }
 }
 

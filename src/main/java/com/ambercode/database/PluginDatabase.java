@@ -18,10 +18,9 @@
 
 package com.ambercode.database;
 
-import com.ambercode.data.Miner;
-import com.ambercode.data.TunnelPath;
-import com.ambercode.data.TunnelStructure;
-import com.ambercode.data.TunnelUnit;
+import com.ambercode.data.*;
+import org.bukkit.Material;
+import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,6 +78,12 @@ public interface PluginDatabase {
     void insertTunnelStructure(@NotNull TunnelStructure tunnelStructure, @NotNull Miner miner);
 
     void insertMiner(@NotNull Miner miner);
+
+    void insertOreVein(@NotNull OreVein oreVein);
+
+    void updateTunnelUnitMaterial(@NotNull TunnelUnit tunnelUnit, @NotNull String newMaterial);
+
+    void updateTunnelUnitOreVein(@NotNull TunnelUnit tunnelUnit, @NotNull OreVein oreVein);
 
     void mergeStructures(@NotNull UUID minerUuid,
                          @NotNull TunnelStructure newMergedStructure,

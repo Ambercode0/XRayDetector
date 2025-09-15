@@ -553,7 +553,7 @@ public final class Utils {
      * @return a list of TunnelUnit objects representing the continuous ore vein, or an empty list if no ore vein is found.
      */
     @NotNull
-    public List<TunnelUnit> getOreVein(@NotNull Block startBlock) {
+    public static List<TunnelUnit> getOreVein(@NotNull Block startBlock) {
         final ArrayList<TunnelUnit> vein = new ArrayList<>();
         final TunnelUnit startUnit = new TunnelUnit(
                 startBlock.getX(),
@@ -580,7 +580,7 @@ public final class Utils {
      * @param currentBlock the block corresponding to the current tunnel unit
      * @param vein a list that accumulates all the connected ore blocks encountered
      */
-    private void getAdjacentOresHelper(@NotNull TunnelUnit currentUnit, @NotNull Block currentBlock, @NotNull List<TunnelUnit> vein) {
+    private static void getAdjacentOresHelper(@NotNull TunnelUnit currentUnit, @NotNull Block currentBlock, @NotNull List<TunnelUnit> vein) {
         // Add current ore to the vein
         vein.add(currentUnit);
 
