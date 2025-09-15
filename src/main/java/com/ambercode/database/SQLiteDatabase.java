@@ -31,7 +31,14 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
-public class SQLiteDatabase extends CredentialPluginDatabase {
+public final class SQLiteDatabase extends CredentialPluginDatabase {
+
+        private static final String CREATE_TABLE_VEINS = """
+                CREATE TABLE IF NOT EXISTS veins (
+                    uuid TEXT PRIMARY KEY UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """;
 
         /**
          * SQL statement for creating the "miners" table in the database.
@@ -135,6 +142,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
             CREATE TABLE IF NOT EXISTS tunnel_units (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 path_uuid TEXT NOT NULL,
+                vein_uuid TEXT,
                 x INTEGER NOT NULL,
                 z INTEGER NOT NULL,
                 material TEXT NOT NULL,
@@ -143,6 +151,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                 mined_at BIGINT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (path_uuid) REFERENCES tunnel_paths(uuid) ON DELETE CASCADE,
+                FOREIGN KEY (vein_uuid) REFERENCES veins(uuid) ON DELETE CASCADE,
                 UNIQUE(path_uuid, x, z)
             );
             """;
@@ -152,20 +161,12 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
          * optimize query performance in the application's SQLite database.
          * These indexes correspond to specific fields across several database tables and
          * are created if they do not already exist.
-         * <p>
-         * Index definitions included:
-         * - idx_miners_suspicion: Optimizes queries on the "suspicion_score" column in the "miners" table.
-         * - idx_tunnel_paths_miner: Optimizes queries on the "miner_uuid" column in the "tunnel_paths" table.
-         * - idx_tunnel_units_path: Optimizes queries on the "path_uuid" column in the "tunnel_units" table.
-         * - idx_tunnel_units_position: Optimizes queries involving the "x" and "z" columns in the "tunnel_units" table.
-         * - idx_tunnel_units_material: Optimizes queries on the "material" column in the "tunnel_units" table.
-         * - idx_tunnel_units_exposed: Optimizes queries on the "exposed" column in the "tunnel_units" table.
-         * - idx_tunnel_units_mined_at: Optimizes queries on the "mined_at" column in the "tunnel_units" table.
          */
         private static final String INDEXES = """
             CREATE INDEX IF NOT EXISTS idx_miners_suspicion ON miners(suspicion_score);
             CREATE INDEX IF NOT EXISTS idx_tunnel_paths_miner ON tunnel_paths(miner_uuid);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_path ON tunnel_units(path_uuid);
+            CREATE INDEX IF NOT EXISTS idx_tunnel_units_vein ON tunnel_units(vein_uuid);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_position ON tunnel_units(x, z);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_material ON tunnel_units(material);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_exposed ON tunnel_units(exposed);
@@ -200,6 +201,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
          * - It may return a large dataset depending on the size and relationships within the database,
          *   which could impact performance for particularly large or complex miner datasets.
          */
+        // TODO: add vein caching
         private static final String CACHE_ALL_DATA_QUERY = """
             SELECT
                 m.uuid as miner_uuid,
@@ -215,7 +217,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
               \s
                 tu.id as unit_id,
                 tu.x as unit_x,
-                tu.z as unit_z,
+                tu.z as unit_z
                 tu.material as unit_material,
                 tu.exposed as unit_exposed,
                 tu.world_name as unit_world_name,
@@ -226,7 +228,8 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
             LEFT JOIN tunnel_structures ts ON m.uuid = ts.miner_uuid
             LEFT JOIN tunnel_paths tp ON ts.uuid = tp.structure_uuid
             LEFT JOIN tunnel_units tu ON tp.uuid = tu.path_uuid
-            ORDER BY m.uuid, ts.uuid, tp.uuid, tu.mined_at
+            LEFT JOIN veins ve ON tu.vein_uuid = ve.uuid
+            ORDER BY m.uuid, ts.uuid, tp.uuid, ve.uuid, tu.mined_at
            \s""";
 
         /**
@@ -245,7 +248,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
          * prevent SQL injection and ensure efficient database interaction.
          */
         private static final String INSERT_UNIT = """
-            INSERT INTO tunnel_units (path_uuid, x, z, material, exposed, world_name ,mined_at, created_at)
+            INSERT INTO tunnel_units (path_uuid, vein_uuid, x, z, material, exposed, world_name, mined_at, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
             """;
 
@@ -364,6 +367,7 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                 statement.execute(CREATE_TABLE_MINERS);
                 statement.execute(CREATE_TABLE_STRUCTURES);
                 statement.execute(CREATE_TABLE_PATHS);
+                statement.execute(CREATE_TABLE_VEINS);
                 statement.execute(CREATE_TABLE_UNITS);
                 statement.execute(INDEXES);
 
@@ -436,8 +440,8 @@ public class SQLiteDatabase extends CredentialPluginDatabase {
                                     TunnelUnit unit = new TunnelUnit(x, z, material, minedAt, worldName);
                                     unit.setExposedToAir(exposed);
 
-                                    if (!path.getUnits().contains(unit)) {
-                                        path.getUnits().add(unit);
+                                    if (!path.contains(unit)) {
+                                        path.add(unit);
                                     }
                                 }
                             }

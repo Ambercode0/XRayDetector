@@ -18,91 +18,106 @@
 
 package com.ambercode.data;
 
+import com.ambercode.utils.Utils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-/**
- * Represents a path within a tunnel system, consisting of sequential TunnelUnit objects
- * that describe the structure of the tunnel. Each TunnelPath has a unique identifier (UUID)
- * for distinguishing it from other paths.
- * <p>
- * A TunnelPath may be initialized with one or more TunnelUnit objects or constructed
- * with an empty initial state. This class provides functionality to retrieve the list of
- * TunnelUnits and the unique identifier associated with the path. Equality between
- * TunnelPath instances is determined by their UUIDs.
- */
-public class TunnelPath {
-
-    private final UUID uuid;
+public final class TunnelPath {
+    private final UUID id;
     private final List<TunnelUnit> units = new ArrayList<>();
+    private final List<OreVein> veins = new ArrayList<>();
+    private final Map<TunnelUnit, OreVein> unitToVein = new HashMap<>();
 
-    public TunnelPath(@NotNull TunnelUnit origin) {
-        units.addFirst(origin);
-        uuid = UUID.randomUUID();
-    }
-
-    /**
-     * Constructs a new TunnelPath instance using a specified unique identifier.
-     *
-     * @param uuid the unique identifier for the tunnel path; must not be null
-     */
-    public TunnelPath(@NotNull UUID uuid) {
-        this.uuid = uuid;
-    }
-
-    /**
-     * Constructs a new instance of TunnelPath with a randomly generated unique identifier (UUID).
-     * <p>
-     * This constructor initializes a TunnelPath object without any TunnelUnits
-     * and assigns it a unique UUID. It can be used to represent an empty tunnel path
-     * that can later have TunnelUnits added to it.
-     */
     public TunnelPath() {
-        this.uuid = UUID.randomUUID();
+        this(UUID.randomUUID());
     }
 
-    /**
-     * Retrieves the list of TunnelUnit objects associated with this TunnelPath.
-     * The list represents the sequence of tunnel units making up the path.
-     *
-     * @return a non-null list of TunnelUnit objects representing the tunnel path.
-     */
+    public TunnelPath(@NotNull TunnelUnit unit) {
+        this();
+        add(unit);
+    }
+
+    public TunnelPath(@NotNull UUID uuid) {
+        this.id = uuid;
+    }
+
+    private List<TunnelUnit> getUnits() { return this.units; }
+    public List<OreVein> getOreVeins() { return Collections.unmodifiableList(veins); }
+
+    public int veinsSize() {
+        return veins.size();
+    }
+
+    public int unitsSize() {
+        return units.size();
+    }
+
+    public boolean add(@NotNull TunnelUnit unit) {
+        return this.units.add(unit);
+    }
+
+    public void addLast(@NotNull TunnelUnit unit) {
+        this.units.addLast(unit);
+    }
+
+    public boolean addAll(@NotNull List<TunnelUnit> units) {
+        return this.units.addAll(units);
+    }
+
+    public boolean addAll(@NotNull TunnelStructure structure) {
+        return addAll(structure.getMainTunnelPath().units);
+    }
+
+    public boolean contains(@NotNull TunnelUnit unit) {
+        return this.units.contains(unit);
+    }
+
+    @Nullable
+    public TunnelUnit getContained(@NotNull TunnelUnit unit) {
+        for (final TunnelUnit u : units)
+            if (u.equals(unit))
+                return u;
+        return null;
+    }
+
+    public boolean isAdjacent(@NotNull TunnelUnit unit) {
+        for (final TunnelUnit u : units)
+            if (Utils.manhattanDistance2D(u, unit) == 1)
+                return true;
+        return false;
+    }
+
     @NotNull
-    public List<TunnelUnit> getUnits() {
-        return units;
+    public Optional<OreVein> veinOf(@NotNull TunnelUnit u) {
+        return Optional.ofNullable(unitToVein.get(u));
     }
 
-    /**
-     * Retrieves the universally unique identifier (UUID) associated with this instance.
-     *
-     * @return a non-null UUID representing the unique identity of this instance.
-     */
+    public void addVein(@NotNull OreVein vein) {
+        // Optionally validate all units of the vein are in this path and not already assigned
+        veins.add(vein);
+        for (TunnelUnit u : vein.units()) {
+            assignUnitToVein(u, vein);
+        }
+    }
+
+    public void assignUnitToVein(@NotNull TunnelUnit u, @NotNull OreVein v) {
+        if (!units.contains(u)) throw new IllegalArgumentException("Unit not in path");
+        OreVein existing = unitToVein.putIfAbsent(u, v);
+        if (existing != null && existing != v) {
+            throw new IllegalStateException("Unit already assigned to another vein");
+        }
+        if (!v.contains(u)) v.addUnitInternal(u);
+    }
+
+    public void removeUnitFromVein(@NotNull TunnelUnit u) {
+        OreVein v = unitToVein.remove(u);
+        if (v != null) v.removeUnitInternal(u);
+    }
+
     @NotNull
     public UUID getUuid() {
-        return uuid;
-    }
-
-    /**
-     * Compares this TunnelPath instance to another object to determine equality.
-     * Two TunnelPath instances are considered equal if their UUIDs are identical.
-     *
-     * @param o the object to be compared for equality with this TunnelPath.
-     * @return true if the specified object is equal to this TunnelPath; false otherwise.
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof TunnelPath that)) return false;
-        return Objects.equals(uuid, that.uuid);
-    }
-
-    /**
-     * Computes the hash code for this TunnelPath instance based on its UUID.
-     *
-     * @return an integer representing the hash code derived from the UUID.
-     */
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(uuid);
+        return id;
     }
 }

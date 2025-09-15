@@ -94,10 +94,7 @@ public class Miner {
     public int getDiscoveredOreVeins() {
         int counter = 0;
         for (final TunnelStructure structure : createdTunnels)
-            for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits())
-                if (unit.isOre())
-                    counter++;
-
+            counter += structure.getMainTunnelPath().veinsSize();
         return counter;
     }
 
@@ -109,7 +106,7 @@ public class Miner {
     public int getMinedBlocks() {
         int counter = 0;
         for (final TunnelStructure createdTunnel : getCreatedTunnels())
-            counter += createdTunnel.getMainTunnelPath().getUnits().size();
+            counter += createdTunnel.getMainTunnelPath().unitsSize();
         return counter;
     }
 

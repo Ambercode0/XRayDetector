@@ -18,7 +18,6 @@
 
 package com.ambercode.data;
 
-import com.ambercode.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,7 +57,14 @@ public class TunnelStructure {
      */
     public TunnelStructure(@NotNull List<TunnelUnit> units) {
         this.mainTunnelPath = new TunnelPath();
-        mainTunnelPath.getUnits().addAll(units);
+        this.mainTunnelPath.addAll(units);
+        this.uuid = UUID.randomUUID();
+    }
+
+    public TunnelStructure(@NotNull TunnelStructure ... structures) {
+        this.mainTunnelPath = new TunnelPath();
+        for (final TunnelStructure structure : structures)
+            this.mainTunnelPath.addAll(structure);
         this.uuid = UUID.randomUUID();
     }
 
@@ -71,7 +77,7 @@ public class TunnelStructure {
      */
     public TunnelStructure(@NotNull List<TunnelUnit> units, @NotNull UUID uuid) {
         this.mainTunnelPath = new TunnelPath();
-        mainTunnelPath.getUnits().addAll(units);
+        this.mainTunnelPath.addAll(units);
         this.uuid = uuid;
     }
 
@@ -84,9 +90,7 @@ public class TunnelStructure {
      * @return true if the specified TunnelUnit is contained in the main tunnel path, false otherwise
      */
     public boolean isContained(@NotNull TunnelUnit tunnelUnit) {
-        for (final TunnelUnit unit : this.mainTunnelPath.getUnits())
-            if (unit.equals(tunnelUnit)) return true;
-        return false;
+        return this.mainTunnelPath.contains(tunnelUnit);
     }
 
     /**
@@ -99,10 +103,7 @@ public class TunnelStructure {
      */
     @Nullable
     public TunnelUnit getContained(@NotNull TunnelUnit tunnelUnit) {
-        for (final TunnelUnit unit : this.mainTunnelPath.getUnits())
-            if (tunnelUnit.equals(unit))
-                return unit;
-        return null;
+        return this.mainTunnelPath.getContained(tunnelUnit);
     }
 
     /**
@@ -115,7 +116,7 @@ public class TunnelStructure {
      *         in the main tunnel path, false otherwise.
      */
     public boolean isAdjacent(@NotNull TunnelUnit tunnelUnit) {
-        return this.mainTunnelPath.getUnits().stream().anyMatch(v -> Utils.manhattanDistance2D(v, tunnelUnit) == 1);
+        return this.mainTunnelPath.isAdjacent(tunnelUnit);
     }
 
     /**

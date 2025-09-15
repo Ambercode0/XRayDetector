@@ -546,4 +546,59 @@ public final class Utils {
         return (recentAverage * RECENT_TUNNELS_WEIGHT) + (historicalAverage * HISTORICAL_TUNNELS_WEIGHT);
     }
 
+    /**
+     * Retrieves a list of connected ore blocks starting from the specified block and forms a tunnel-like structure of ores.
+     *
+     * @param startBlock the starting block from which the ore vein will be evaluated; must not be null.
+     * @return a list of TunnelUnit objects representing the continuous ore vein, or an empty list if no ore vein is found.
+     */
+    @NotNull
+    public List<TunnelUnit> getOreVein(@NotNull Block startBlock) {
+        final ArrayList<TunnelUnit> vein = new ArrayList<>();
+        final TunnelUnit startUnit = new TunnelUnit(
+                startBlock.getX(),
+                startBlock.getZ(),
+                startBlock.getType(),
+                System.currentTimeMillis(),
+                startBlock.getWorld().getName()
+        );
+
+        if (startUnit.isOre()) {
+            getAdjacentOresHelper(startUnit, startBlock, vein);
+        }
+
+        return vein;
+    }
+
+    /**
+     * Recursive helper method that identifies and collects all adjacent ore blocks
+     * starting from a given block. This method explores all the adjacent blocks
+     * to find ores, adds them to the vein list, and continues the recursion until
+     * all connected ore blocks are identified.
+     *
+     * @param currentUnit the current tunnel unit representing the ore block being inspected
+     * @param currentBlock the block corresponding to the current tunnel unit
+     * @param vein a list that accumulates all the connected ore blocks encountered
+     */
+    private void getAdjacentOresHelper(@NotNull TunnelUnit currentUnit, @NotNull Block currentBlock, @NotNull List<TunnelUnit> vein) {
+        // Add current ore to the vein
+        vein.add(currentUnit);
+
+        // Check all adjacent blocks
+        for (final BlockFace face : ADJACENT_DIRECTIONS) {
+            final Block adjacent = currentBlock.getRelative(face);
+            final TunnelUnit adjacentUnit = new TunnelUnit(
+                    adjacent.getX(),
+                    adjacent.getZ(),
+                    adjacent.getType(),
+                    System.currentTimeMillis(),
+                    adjacent.getWorld().getName()
+            );
+
+            // Only recurse if it's an ore and not already in the vein
+            if (adjacentUnit.isOre() && !vein.contains(adjacentUnit)) {
+                getAdjacentOresHelper(adjacentUnit, adjacent, vein);
+            }
+        }
+    }
 }

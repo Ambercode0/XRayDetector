@@ -141,7 +141,7 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         }
 
         if (adjacentToUniqueStructuresCount == 1) { // is adjacent to only ONE structure, we just extend existing.
-            adjacentStructures[0].getMainTunnelPath().getUnits().add(tunnelUnit);
+            adjacentStructures[0].getMainTunnelPath().add(tunnelUnit);
             boolean exposedToAir = Utils.isExposedToAir(tunnelUnit, adjacentStructures[0], block);
             tunnelUnit.setExposedToAir(exposedToAir);
             fileLogger.addLogMessage(String.format("player %s extended existing structure (%s) at [%d, %d] exposed=%b", playerName, adjacentStructures[0].getUuid(), blockLocation.getBlockX(), blockLocation.getBlockZ(), exposedToAir));
@@ -151,17 +151,18 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         }
 
         // here it must be by exclusion that there are two to four total adjacent structures, we must merge all to one.
-        List<TunnelUnit> mergedTunnelUnits = new ArrayList<>();
-        StringBuilder uuidsList = new StringBuilder();
+        // List<TunnelUnit> mergedTunnelUnits = new ArrayList<>();
+        final TunnelStructure[] structuresToMerge = new TunnelStructure[adjacentToUniqueStructuresCount];
+        final StringBuilder uuidsList = new StringBuilder();
         for (int i = 0; i < adjacentToUniqueStructuresCount; i++) {
             TunnelStructure tunnelStructure = adjacentStructures[i];
             uuidsList.append(tunnelStructure.getUuid()).append(',');
             minerTunnelStructures.remove(tunnelStructure);
-            mergedTunnelUnits.addAll(tunnelStructure.getMainTunnelPath().getUnits());
+            structuresToMerge[i] = tunnelStructure;
         }
 
-        TunnelStructure mergedStructure = new TunnelStructure(mergedTunnelUnits);
-        mergedStructure.getMainTunnelPath().getUnits().addLast(tunnelUnit);
+        TunnelStructure mergedStructure = new TunnelStructure(structuresToMerge);
+        mergedStructure.getMainTunnelPath().addLast(tunnelUnit);
         minerTunnelStructures.add(mergedStructure);
         boolean exposedToAir = Utils.isExposedToAir(tunnelUnit, mergedStructure, block);
         tunnelUnit.setExposedToAir(exposedToAir);
