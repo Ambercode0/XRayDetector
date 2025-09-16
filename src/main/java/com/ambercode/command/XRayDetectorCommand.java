@@ -194,7 +194,7 @@ public class XRayDetectorCommand implements CommandExecutor, TabCompleter {
         }
 
         for (TunnelStructure createdTunnel : miner.getCreatedTunnels()) {
-            List<TunnelUnit> units = TunnelPathFinder.findLongestPath(createdTunnel.getMainTunnelPath().getUnits());
+            List<TunnelUnit> units = TunnelPathFinder.findLongestPath(createdTunnel.getMainTunnelPath().getUnmodifiableUnits());
             for (TunnelUnit unit : units) {
                 player.spawnParticle(Particle.END_ROD, new Location(player.getWorld(), unit.getX()+.5f, player.getY()+.25f, unit.getZ()+.5f),0);
             }

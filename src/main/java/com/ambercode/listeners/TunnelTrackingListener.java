@@ -185,7 +185,7 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
     private void newTunnelStartsWithVein(@NotNull TunnelUnit unit, @NotNull OreVein vein, @NotNull TunnelStructure structure) {
         PluginDatabase database = xRayDetector.getPluginDatabase();
         TunnelPath path = structure.getMainTunnelPath();
-        database.insertOreVein(vein);
+        database.insertOreVein(vein, path);
         for (TunnelUnit tunnelUnit : vein.units()) {
             if (tunnelUnit.equals(unit)) continue;
             path.add(tunnelUnit);
@@ -254,13 +254,33 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         structure.getMainTunnelPath().add(tunnelUnit);
         boolean exposedToAir = Utils.isExposedToAir(tunnelUnit, structure, block);
         tunnelUnit.setExposedToAir(exposedToAir);
-
+        PluginDatabase db = xRayDetector().getPluginDatabase();
         logExtendedStructure(player.getName(), structure, tunnelUnit, exposedToAir);
-        xRayDetector().getPluginDatabase().insertTunnelUnit(tunnelUnit, structure.getMainTunnelPath());
+
+        if (!tunnelUnit.isOre()) {
+            db.insertTunnelUnit(tunnelUnit, structure.getMainTunnelPath());
+            return;
+        }
+
+        // unit adjacent and ore
 
         TunnelPath path = structure.getMainTunnelPath();
         // OreVein oreVein = path.getOrCreateVein(tunnelUnit, block);
         Optional<OreVein> oreVeinOpt = path.veinOf(tunnelUnit);
+        OreVein oreVein;
+        if (oreVeinOpt.isEmpty()) { // unit adjacent, ore, and new vein
+            oreVein = path.getOrCreateVein(tunnelUnit, block); // creating 100%
+            // we should add all blocks since this is a new vein;
+            List<TunnelUnit> veinUnits = oreVein.units();
+            db.insertOreVein(oreVein, path);
+            veinUnits.forEach(vu -> {
+                db.insertTunnelUnit(vu, structure.getMainTunnelPath());
+                db.updateTunnelUnitOreVein(vu, oreVein);
+            });
+        } else { // unit adjacent, ore, and existing vein (ignore?)
+            oreVein = oreVeinOpt.get();
+            assert oreVein.units().contains(tunnelUnit);
+        }
     }
 
     /**

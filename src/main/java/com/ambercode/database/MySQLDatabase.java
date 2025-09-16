@@ -63,7 +63,7 @@ public class MySQLDatabase extends HikariPluginDatabase {
     }
 
     @Override
-    public void insertOreVein(@NotNull OreVein oreVein) {
+    public void insertOreVein(@NotNull OreVein oreVein, @NotNull TunnelPath tunnelPath) {
 
     }
 

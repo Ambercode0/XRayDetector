@@ -79,7 +79,7 @@ public interface PluginDatabase {
 
     void insertMiner(@NotNull Miner miner);
 
-    void insertOreVein(@NotNull OreVein oreVein);
+    void insertOreVein(@NotNull OreVein oreVein, @NotNull TunnelPath tunnelPath);
 
     void updateTunnelUnitMaterial(@NotNull TunnelUnit tunnelUnit, @NotNull String newMaterial);
 

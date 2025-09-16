@@ -20,6 +20,7 @@ package com.ambercode.gui;
 
 import com.ambercode.XRayDetector;
 import com.ambercode.data.Miner;
+import com.ambercode.data.TunnelPath;
 import com.ambercode.data.TunnelStructure;
 import com.ambercode.data.TunnelUnit;
 import com.ambercode.logging.FileLogger;
@@ -245,12 +246,10 @@ public class SuspicionGUI {
             return;
         }
 
-        List<TunnelUnit> units = structure.getMainTunnelPath().getUnits();
-        if (units == null) {
-            units = new ArrayList<>();
-        }
+        TunnelPath path = structure.getMainTunnelPath();
+        List<TunnelUnit> units = path.getUnmodifiableUnits();
 
-        int totalPages = Math.max(1, (int) Math.ceil((double) units.size() / ITEMS_PER_PAGE));
+        int totalPages = Math.max(1, (int) Math.ceil((double) path.unitsSize() / ITEMS_PER_PAGE));
         page = Math.max(0, Math.min(page, totalPages - 1));
 
         Inventory inventory = Bukkit.createInventory(null, 54, GUI_TITLE_UNITS + (page + 1) + "/" + totalPages);
@@ -320,13 +319,13 @@ public class SuspicionGUI {
 
                 // Use a generic display; if you have a concrete TunnelStructure class, cast and use its methods directly.
                 String uuid = structure.getUuid().toString();
-                int totalBlocks = structure.getMainTunnelPath().getUnits().size();
-                int totalOres = (int) structure.getMainTunnelPath().getUnits().stream().filter(TunnelUnit::isOre).count();
-                double length = structure.getMainTunnelPath().getUnits().size();
-                long createdAt = structure.getMainTunnelPath().getUnits().getFirst().getMinedAt();
+                int totalBlocks = structure.getMainTunnelPath().unitsSize();
+                int totalOres = (int) structure.getMainTunnelPath().getOreVeins().size();
+                double length = totalBlocks;
+                long createdAt = structure.getMainTunnelPath().getFirstUnit().getMinedAt();
                 double structureSuspicionScore = Utils.calculateXRaySuspicionScore(structure, plugin);
 
-                TunnelUnit tempUnit = structure.getMainTunnelPath().getUnits().getFirst();
+                TunnelUnit tempUnit = structure.getMainTunnelPath().getFirstUnit();
                 ItemStack item = structureSuspicionScore >= 0.70d ? new ItemStack(Material.BELL) :
                         tempUnit.getWorldName().contains("nether") ? new ItemStack(Material.NETHERRACK) : new ItemStack(Material.STONE);
                 ItemMeta meta = item.getItemMeta();
@@ -340,7 +339,7 @@ public class SuspicionGUI {
                 lore.add("§bSuspicion Score: §a" + (structureSuspicionScore < 0 ? ErrorComputeReturnCode.getErrorByNumber((int) structureSuspicionScore)
                         : ((structureSuspicionScore >= 0.70d ? "c":"a") + String.format("%.2f", structureSuspicionScore) + "/1")));
                 lore.add("§bTotal Blocks: §f" + totalBlocks);
-                lore.add("§bTotal Ores: §f" + totalOres);
+                lore.add("§bTotal Ore Veins: §f" + totalOres);
                 lore.add("§bOre Density: §f" + DENSITY_FORMAT.format(Utils.averageOreDensity(structure)*100) + "%");
                 lore.add("§bAvg. Ore Find Time: §f" + (avgTimePerOre != 0 ? Utils.formatTimeDifference(avgTimePerOre) : "Unavailable"));
                 lore.add("§bCreated: §f" + (createdAt > 0 ? formatTime(createdAt) : "Unknown"));
@@ -804,7 +803,7 @@ public class SuspicionGUI {
             populateStructures(session.inventory, structures, session.currentPage);
             addNavigationItems(session.inventory, session.currentPage, session.totalPages, structures.size(), session.mode);
         } else if (session.mode == GUIMode.UNITS) {
-            List<TunnelUnit> units = playerDataManager.getTunnelStructure(UUID.fromString(session.structureUUID)).getMainTunnelPath().getUnits();
+            List<TunnelUnit> units = playerDataManager.getTunnelStructure(UUID.fromString(session.structureUUID)).getMainTunnelPath().getUnmodifiableUnits();
             session.totalPages = Math.max(1, (int) Math.ceil((double) units.size() / ITEMS_PER_PAGE));
             session.currentPage = Math.min(session.currentPage, session.totalPages - 1);
 

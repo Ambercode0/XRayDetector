@@ -113,7 +113,6 @@ public final class Utils {
      * @return true if the provided tunnel unit or block is exposed to air, false otherwise.
      */
     public static boolean isExposedToAir(@NotNull TunnelUnit tunnelUnit, @Nullable TunnelStructure tunnelStructure, @NotNull Block minedBlock) {
-
         if (tunnelStructure == null) {
             for (final BlockFace face : ADJACENT_DIRECTIONS) {
                 final Material relativeMaterial = minedBlock.getRelative(face).getType();
@@ -124,10 +123,9 @@ public final class Utils {
             return false;
         }
 
-        for (final TunnelUnit tempUnit : tunnelStructure.getMainTunnelPath().getUnits())
+        for (final TunnelUnit tempUnit : tunnelStructure.getMainTunnelPath().getUnmodifiableUnits())
             if (tunnelUnit.isOre() && Utils.manhattanDistance2D(tempUnit, tunnelUnit) == 1 && tempUnit.isExposedToAir() && tempUnit.isOre())
                 return true;
-
         return false;
     }
 
@@ -141,16 +139,9 @@ public final class Utils {
      *         units to the total number of units in the main tunnel path.
      */
     public static double averageOreDensity(@NotNull TunnelStructure structure) {
-        int oreCount = 0;
-        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
-            if (unit.isOre()) {
-                oreCount++;
-            }
-        }
-        return (double) oreCount / structure.getMainTunnelPath().getUnits().size();
+        double oreCount = structure.getMainTunnelPath().oreSize();
+        return oreCount / structure.getMainTunnelPath().unitsSize();
     }
-    
-    
 
     /**
      * Calculates the average time (in milliseconds) between finding ores in a tunnel structure.
@@ -162,8 +153,8 @@ public final class Utils {
      * Use {@link #formatTimeDifference(long)} to convert to human-readable format.
      */
     public static long averageTimePerOreFound(@NotNull TunnelStructure structure) {
-        List<TunnelUnit> units = structure.getMainTunnelPath().getUnits();
-        List<Long> oreTimes = new ArrayList<>();
+        final List<TunnelUnit> units = structure.getMainTunnelPath().getUnmodifiableUnits();
+        final List<Long> oreTimes = new ArrayList<>();
 
         for (TunnelUnit unit : units)
             if (unit.isOre())
@@ -226,7 +217,7 @@ public final class Utils {
      * @return A double between 0 and 1, where 1 indicates a perfectly straight path, and 0 indicates a maximally irregular path.
      */
     public static double computePathStraightness(@NotNull TunnelStructure structure) {
-        return computePathStraightness(structure.getMainTunnelPath().getUnits());
+        return computePathStraightness(structure.getMainTunnelPath().getUnmodifiableUnits());
     }
 
     /**
@@ -389,7 +380,7 @@ public final class Utils {
         long totalBlocks = 0;
         long diamondCount = 0;
 
-        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnmodifiableUnits()) {
             final Material material = unit.getMaterial();
             if (material == Material.STONE || material == Material.DEEPSLATE ||
                     material == Material.DIAMOND_ORE || material == Material.DEEPSLATE_DIAMOND_ORE) {
@@ -421,7 +412,7 @@ public final class Utils {
     private static double calculateTimePatternScore(@NotNull TunnelStructure structure) {
         final List<Long> diamondTimes = new ArrayList<>();
 
-        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnmodifiableUnits()) {
             if (unit.getMaterial() == Material.DIAMOND_ORE ||
                     unit.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE) {
                 diamondTimes.add(unit.getMinedAt());
@@ -456,7 +447,7 @@ public final class Utils {
         int totalDiamonds = 0;
         int unexposedDiamonds = 0;
 
-        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnits()) {
+        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnmodifiableUnits()) {
             if (unit.getMaterial() == Material.DIAMOND_ORE ||
                     unit.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE) {
                 totalDiamonds++;
@@ -500,9 +491,9 @@ public final class Utils {
      */
     public static boolean isTunnelMiningExposedOreVein(@NotNull TunnelStructure structure) {
         TunnelPath tunnelPath = structure.getMainTunnelPath();
-        int size = tunnelPath.getUnits().size();
-        int ores = (int) tunnelPath.getUnits().stream().filter(TunnelUnit::isOre).count();
-        int oresAndExposed = (int) tunnelPath.getUnits().stream().filter(TunnelUnit::isOre).filter(TunnelUnit::isExposedToAir).count();
+        int size = tunnelPath.unitsSize();
+        int ores = tunnelPath.oreSize();
+        int oresAndExposed = tunnelPath.oreAndExposed();
         return size <= 10 && (double) oresAndExposed / size >= 0.6f;
     }
 
@@ -532,7 +523,7 @@ public final class Utils {
             double score = calculateXRaySuspicionScore(tunnel, plugin);
             if (score < 0) continue; // Skip invalid scores
 
-            if (currentTime - tunnel.getMainTunnelPath().getUnits().getFirst().getMinedAt() < RECENT_TUNNEL_THRESHOLD) {
+            if (currentTime - tunnel.getMainTunnelPath().getFirstUnit().getMinedAt() < RECENT_TUNNEL_THRESHOLD) {
                 recentScores.add(score);
             } else {
                 historicalScores.add(score);

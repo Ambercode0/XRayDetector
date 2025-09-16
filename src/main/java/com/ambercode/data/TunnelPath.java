@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public final class TunnelPath {
     private final UUID id;
@@ -44,7 +45,15 @@ public final class TunnelPath {
         this.id = uuid;
     }
 
-    private List<TunnelUnit> getUnits() { return this.units; }
+    protected List<TunnelUnit> getUnits() {
+        return this.units;
+    }
+
+    @NotNull
+    public List<TunnelUnit> getUnmodifiableUnits() {
+        return Collections.unmodifiableList(units);
+    }
+
     public List<OreVein> getOreVeins() { return Collections.unmodifiableList(veins); }
 
     public int veinsSize() {
@@ -54,6 +63,21 @@ public final class TunnelPath {
     public int unitsSize() {
         return units.size();
     }
+    
+    public int oreSize() {
+        int k = 0;
+        for (final TunnelUnit u : units) 
+            if (u.isOre()) k++;
+        return k;
+    }
+
+    public int oreAndExposed() {
+        int k = 0;
+        for (final TunnelUnit u : units)
+            if (u.isOre() && u.isExposedToAir()) k++;
+        return k;
+    }
+
 
     public boolean add(@NotNull TunnelUnit unit) {
         return this.units.add(unit);
@@ -90,6 +114,13 @@ public final class TunnelPath {
         return false;
     }
 
+    /**
+     * Retrieves the {@link OreVein} associated with the specified {@link TunnelUnit}, if it exists.
+     *
+     * @param u the {@link TunnelUnit} whose associated {@link OreVein} is to be retrieved; must not be null.
+     * @return an {@link Optional} containing the associated {@link OreVein}, or an empty {@link Optional}
+     *         if no association exists for the provided {@link TunnelUnit}.
+     */
     @NotNull
     public Optional<OreVein> veinOf(@NotNull TunnelUnit u) {
         return Optional.ofNullable(unitToVein.get(u));
@@ -165,4 +196,24 @@ public final class TunnelPath {
     public UUID getUuid() {
         return id;
     }
+
+    @Nullable
+    public TunnelUnit getFirstUnit() {
+        return units.isEmpty() ? null : units.getFirst();
+    }
+
+    @Nullable
+    public TunnelUnit getLastUnit() {
+        return units.isEmpty() ? null : units.getLast();
+    }
+
+    /**
+     * Performs the given action for each TunnelUnit in this path.
+     *
+     * @param action The action to be performed for each element; must not be null
+     */
+    public void forEachUnit(@NotNull Consumer<TunnelUnit> action) {
+        units.forEach(action);
+    }
+    
 }
