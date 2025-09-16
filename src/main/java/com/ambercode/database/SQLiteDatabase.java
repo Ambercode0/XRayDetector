@@ -35,7 +35,7 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
                 uuid TEXT PRIMARY KEY UNIQUE,
                 path_uuid TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (path_uuid) REFERENCES tunnel_paths(uuid) ON DELETE CASCADE;
+                FOREIGN KEY (path_uuid) REFERENCES tunnel_paths(uuid) ON DELETE CASCADE
             );
             """;
 
@@ -141,7 +141,7 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
             CREATE TABLE IF NOT EXISTS tunnel_units (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 path_uuid TEXT NOT NULL,
-                vein_uuid TEXT,
+                vein_uuid TEXT DEFAULT NULL,
                 x INTEGER NOT NULL,
                 z INTEGER NOT NULL,
                 material TEXT NOT NULL,
@@ -163,7 +163,7 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
      */
     private static final String INDEXES = """
             CREATE INDEX IF NOT EXISTS idx_miners_suspicion ON miners(suspicion_score);
-            CREATE INDEX IF NOT EXISTS idx_tunnel_paths_miner ON tunnel_paths(miner_uuid);
+            CREATE INDEX IF NOT EXISTS idx_tunnel_paths_structure ON tunnel_paths(structure_uuid);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_path ON tunnel_units(path_uuid);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_vein ON tunnel_units(vein_uuid);
             CREATE INDEX IF NOT EXISTS idx_tunnel_units_position ON tunnel_units(x, z);
@@ -174,8 +174,8 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
             """;
 
     private static final String INSERT_VEIN = """
-            INSERT INTO veins (uuid, created_at)
-            VALUES (?,?, CURRENT_TIMESTAMP);
+            INSERT INTO veins (uuid, path_uuid, created_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP);
             """;
 
     /**
@@ -187,15 +187,17 @@ public final class SQLiteDatabase extends CredentialPluginDatabase {
      * - `material`: The material type of the tunnel unit.
      * - `exposed`: Whether the unit is exposed or not.
      * - `world_name`: The name of the world the unit is located in.
-     * - `mined_at`: The timestamp when the unit was mined.
-     * - `created_at`: The timestamp when the record was created (set to the current timestamp).
-     * <p>
-     * The query utilizes prepared statement placeholders (`?`) for parameterized values to
-     * prevent SQL injection and ensure efficient database interaction.
+     * - `mined_at`: Epoch milliseconds when the unit was mined.
+     * Lets `vein_uuid` default to NULL and `created_at` default to CURRENT_TIMESTAMP.
      */
     private static final String INSERT_UNIT = """
-            INSERT INTO tunnel_units (path_uuid, vein_uuid, x, z, material, exposed, world_name, mined_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
+            INSERT INTO tunnel_units (path_uuid, x, z, material, exposed, world_name, mined_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(path_uuid, x, z) DO UPDATE SET
+                material = excluded.material,
+                exposed = excluded.exposed,
+                world_name = excluded.world_name,
+                mined_at = excluded.mined_at;
             """;
 
     /**

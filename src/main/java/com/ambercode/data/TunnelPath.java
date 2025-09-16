@@ -72,10 +72,7 @@ public final class TunnelPath {
     }
 
     public int oreAndExposed() {
-        int k = 0;
-        for (final TunnelUnit u : units)
-            if (u.isOre() && u.isExposedToAir()) k++;
-        return k;
+        return (int) units.stream().filter(tu -> tu.isOre() && tu.isExposedToAir()).count();
     }
 
 

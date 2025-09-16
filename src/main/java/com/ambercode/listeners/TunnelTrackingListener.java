@@ -133,7 +133,9 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
             return;
         }
 
-        if (handleExistingUnit(player, tunnelUnit, minerTunnels)) return;
+        if (handleExistingUnit(player, tunnelUnit, minerTunnels, block)) {
+            return;
+        }
 
         final TunnelStructure[] adjacentStructures = findAdjacentStructures(minerTunnels, tunnelUnit);
         int adjacentCount = countNonNullStructures(adjacentStructures);
@@ -170,7 +172,9 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         if (tunnelUnit.isOre()) {
             TunnelPath path = firstTunnel.getMainTunnelPath();
             OreVein vein = path.getOrCreateVein(tunnelUnit, block);
-            newTunnelStartsWithVein(tunnelUnit, vein, firstTunnel);
+            newTunnelStartsWithVein(vein, firstTunnel, tunnelUnit.isExposedToAir());
+        } else {
+            xRayDetector().getPluginDatabase().insertTunnelUnit(tunnelUnit, firstTunnel.getMainTunnelPath());
         }
     }
 
@@ -178,16 +182,15 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
      * Initializes a new tunnel starting with a given vein, updates the tunnel structure,
      * and stores the relevant data in the plugin database.
      *
-     * @param unit the initial tunnel unit to start the tunnel with; must not be null
      * @param vein the ore vein associated with the new tunnel; must not be null
      * @param structure the tunnel structure used to manage the new tunnel path; must not be null
      */
-    private void newTunnelStartsWithVein(@NotNull TunnelUnit unit, @NotNull OreVein vein, @NotNull TunnelStructure structure) {
+    private void newTunnelStartsWithVein(@NotNull OreVein vein, @NotNull TunnelStructure structure, boolean setExposed) {
         PluginDatabase database = xRayDetector.getPluginDatabase();
         TunnelPath path = structure.getMainTunnelPath();
         database.insertOreVein(vein, path);
         for (TunnelUnit tunnelUnit : vein.units()) {
-            if (tunnelUnit.equals(unit)) continue;
+            tunnelUnit.setExposedToAir(true);
             path.add(tunnelUnit);
             database.insertTunnelUnit(tunnelUnit, path);
             database.updateTunnelUnitOreVein(tunnelUnit, vein);
@@ -203,11 +206,11 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
      * @param minerTunnels a list of tunnel structures to evaluate; must not be null
      * @return true if the tunnel unit is found and handled within one of the structures, false otherwise
      */
-    private boolean handleExistingUnit(@NotNull Player player, @NotNull TunnelUnit tunnelUnit, @NotNull List<TunnelStructure> minerTunnels) {
+    private boolean handleExistingUnit(@NotNull Player player, @NotNull TunnelUnit tunnelUnit, @NotNull List<TunnelStructure> minerTunnels, @NotNull Block block) {
         for (final TunnelStructure structure : minerTunnels) {
             if (structure.isContained(tunnelUnit)) {
                 logExistingUnit(player.getName(), tunnelUnit, structure);
-                updateExistingUnit(tunnelUnit, structure);
+                updateExistingUnit(tunnelUnit, structure, block);
                 return true;
             }
         }
@@ -236,7 +239,9 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         if (tunnelUnit.isOre()) {
             TunnelPath path = newStructure.getMainTunnelPath();
             OreVein vein = path.getOrCreateVein(tunnelUnit, block);
-            newTunnelStartsWithVein(tunnelUnit, vein, newStructure);
+            newTunnelStartsWithVein(vein, newStructure, tunnelUnit.isExposedToAir());
+        } else {
+            xRayDetector().getPluginDatabase().insertTunnelUnit(tunnelUnit, newStructure.getMainTunnelPath());
         }
     }
 
@@ -247,7 +252,7 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
      *
      * @param player the Player performing the action; must not be null
      * @param tunnelUnit the TunnelUnit being added to the TunnelStructure; must not be null
-     * @param block the Block that is associated with the TunnelUnit; must not be null
+     * @param block the Block associated with the TunnelUnit; must not be null
      * @param structure the TunnelStructure being extended with the TunnelUnit; must not be null
      */
     private void handleSingleAdjacent(@NotNull Player player, @NotNull TunnelUnit tunnelUnit, @NotNull Block block, @NotNull TunnelStructure structure) {
@@ -331,7 +336,7 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         PluginDatabase db = xRayDetector().getPluginDatabase();
         db.insertTunnelStructure(structure, miner);
         db.insertTunnelPath(structure.getMainTunnelPath(), structure);
-        db.insertTunnelUnit(unit, structure.getMainTunnelPath());
+        // db.insertTunnelUnit(unit, structure.getMainTunnelPath());
     }
 
     /**
@@ -448,13 +453,41 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
      * @param tunnelUnit the TunnelUnit containing the material to update; must not be null.
      * @param structure the TunnelStructure that may contain the TunnelUnit to be updated; can be null.
      */
-    private void updateExistingUnit(@NotNull TunnelUnit tunnelUnit, @Nullable TunnelStructure structure) {
+    private void updateExistingUnit(@NotNull TunnelUnit tunnelUnit, @Nullable TunnelStructure structure, @NotNull Block block) {
         if (Utils.isOre(tunnelUnit.getMaterial())) {
             TunnelUnit existingUnit = structure.getContained(tunnelUnit);
             if (existingUnit != null && !existingUnit.isOre()) {
                 existingUnit.setMaterial(tunnelUnit.getMaterial());
                 xRayDetector.getPluginDatabase().updateTunnelUnitMaterial(existingUnit, tunnelUnit.getMaterial().name());
             }
+
+            TunnelPath path = structure.getMainTunnelPath();
+            List<OreVein> oreVeins = path.getOreVeins();
+
+            OreVein found = null;
+            outLoop:
+            for (OreVein oreVein : oreVeins) {              // checking if any ore veins in this path contains
+                for (TunnelUnit unit : oreVein.units()) {   // the unit that we are trying to update
+                    if (unit.equals(tunnelUnit)) {
+                        found = oreVein;
+                        break outLoop;
+                    }
+                }
+            }
+
+            if (found == null) {    // no vein was found, it means we must create a new vein and add all blocks.
+                found = path.getOrCreateVein(tunnelUnit, block);
+                xRayDetector.getPluginDatabase().insertOreVein(found, path);
+                xRayDetector.getPluginDatabase().updateTunnelUnitOreVein(tunnelUnit, found);
+                for (final TunnelUnit unit : found.units()) {
+                    if (unit.equals(tunnelUnit)) continue;
+                    xRayDetector.getPluginDatabase().insertTunnelUnit(unit, path);
+                    xRayDetector.getPluginDatabase().updateTunnelUnitOreVein(unit, found);
+                }
+            } else {
+                // it's already there?
+            }
+
         }
     }
 
