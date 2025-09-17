@@ -14,7 +14,7 @@ database:
   port: 3306
 
 analysis:
-  interval: 30 # how often the database should be scanned for cheaters, in minutes.
+  interval: 2 # how often the database should be scanned for cheaters, in minutes.
   auto-punish:
     enabled: false # enable/disable auto-punishment at your own risk, we are not responsible for any false positives.
     threshold: 0.805

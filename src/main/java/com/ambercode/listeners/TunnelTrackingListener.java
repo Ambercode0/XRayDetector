@@ -256,7 +256,8 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
      * @param structure the TunnelStructure being extended with the TunnelUnit; must not be null
      */
     private void handleSingleAdjacent(@NotNull Player player, @NotNull TunnelUnit tunnelUnit, @NotNull Block block, @NotNull TunnelStructure structure) {
-        structure.getMainTunnelPath().add(tunnelUnit);
+        TunnelPath path = structure.getMainTunnelPath();
+        path.add(tunnelUnit);
         boolean exposedToAir = Utils.isExposedToAir(tunnelUnit, structure, block);
         tunnelUnit.setExposedToAir(exposedToAir);
         PluginDatabase db = xRayDetector().getPluginDatabase();
@@ -268,8 +269,6 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
         }
 
         // unit adjacent and ore
-
-        TunnelPath path = structure.getMainTunnelPath();
         // OreVein oreVein = path.getOrCreateVein(tunnelUnit, block);
         Optional<OreVein> oreVeinOpt = path.veinOf(tunnelUnit);
         OreVein oreVein;
@@ -279,6 +278,9 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
             List<TunnelUnit> veinUnits = oreVein.units();
             db.insertOreVein(oreVein, path);
             veinUnits.forEach(vu -> {
+                if (!tunnelUnit.equals(vu)) {
+                    path.add(vu);
+                }
                 db.insertTunnelUnit(vu, structure.getMainTunnelPath());
                 db.updateTunnelUnitOreVein(vu, oreVein);
             });
@@ -481,6 +483,7 @@ public record TunnelTrackingListener(@NotNull FileLogger fileLogger, @NotNull Pl
                 xRayDetector.getPluginDatabase().updateTunnelUnitOreVein(tunnelUnit, found);
                 for (final TunnelUnit unit : found.units()) {
                     if (unit.equals(tunnelUnit)) continue;
+                    path.add(unit);
                     xRayDetector.getPluginDatabase().insertTunnelUnit(unit, path);
                     xRayDetector.getPluginDatabase().updateTunnelUnitOreVein(unit, found);
                 }

@@ -19,10 +19,7 @@
 package com.ambercode.utils;
 
 import com.ambercode.XRayDetector;
-import com.ambercode.data.Miner;
-import com.ambercode.data.TunnelPath;
-import com.ambercode.data.TunnelStructure;
-import com.ambercode.data.TunnelUnit;
+import com.ambercode.data.*;
 import com.ambercode.logging.FileLogger;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -31,14 +28,18 @@ import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public final class Utils {
 
     public Utils() {
         throw new RuntimeException("This class is not enabled for instantiation");
+    }
+
+    private static int manhattanDistance2D(final int x1, final int z1, final int x2, final int z2) {
+        return Math.abs(x1 - x2) + Math.abs(z1 - z2);
     }
 
     /**
@@ -49,8 +50,8 @@ public final class Utils {
      * @param b The second location
      * @return the Manhattan distance between the two locations
      */
-    public static int manhattanDistance2D(Location a, Location b) {
-        return Math.abs(a.getBlockX() - b.getBlockX()) + Math.abs(a.getBlockZ() - b.getBlockZ());
+    public static int manhattanDistance2D(@NotNull Location a, @NotNull Location b) {
+        return manhattanDistance2D(a.getBlockX(), a.getBlockY(), b.getBlockX(), b.getBlockY());
     }
 
     /**
@@ -63,8 +64,10 @@ public final class Utils {
      * @return the Manhattan distance between the two TunnelUnits if they are in the same world,
      *         otherwise -1.
      */
-    public static int manhattanDistance2D(TunnelUnit a, TunnelUnit b) {
-        return a.getWorldName().equals(b.getWorldName()) ? Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ()) : -1;
+    public static int manhattanDistance2D(@NotNull TunnelUnit a, @NotNull TunnelUnit b) {
+        return a.getWorldName().equals(b.getWorldName())
+                ? manhattanDistance2D(a.getX(), a.getZ(), b.getX(), b.getZ())
+                : -1;
     }
 
     /**
@@ -144,7 +147,7 @@ public final class Utils {
     }
 
     /**
-     * Calculates the average time (in milliseconds) between finding ores in a tunnel structure.
+     * Calculates the average time (in milliseconds) between finding ore veins in a tunnel structure.
      * This is computed by finding time differences between consecutive ore discoveries
      * and calculating their average.
      *
@@ -154,16 +157,15 @@ public final class Utils {
      */
     public static long averageTimePerOreFound(@NotNull TunnelStructure structure) {
         final List<TunnelUnit> units = structure.getMainTunnelPath().getUnmodifiableUnits();
-        final List<Long> oreTimes = new ArrayList<>();
 
-        for (TunnelUnit unit : units)
-            if (unit.isOre())
-                oreTimes.add(unit.getMinedAt());
+        final List<Long> oreTimes = structure.getMainTunnelPath().getOreVeins().stream()
+                .map(v -> v.units().getFirst().getMinedAt())
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
 
         if (oreTimes.size() < 2)
             return 0;
 
-        Collections.sort(oreTimes);
         long totalTimeDiff = 0;
         for (int i = 1; i < oreTimes.size(); i++)
             totalTimeDiff += oreTimes.get(i) - oreTimes.get(i - 1);
@@ -203,39 +205,6 @@ public final class Utils {
         return result.toString().trim();
     }
 
-    
-
-    /**
-     * Computes the straightness of the main tunnel path within a given tunnel structure.
-     * A path's straightness is evaluated based on the directional changes between consecutive
-     * TunnelUnits in the main tunnel path, where a perfectly straight path scores 1.0 and a highly
-     * irregular or random path scores closer to 0.0.
-     * <p>
-     * Delegates the computation to a method handling the unit list extracted from the tunnel structure.
-     *
-     * @param structure The tunnel structure whose main tunnel path straightness is to be computed. Must not be null.
-     * @return A double between 0 and 1, where 1 indicates a perfectly straight path, and 0 indicates a maximally irregular path.
-     */
-    public static double computePathStraightness(@NotNull TunnelStructure structure) {
-        return computePathStraightness(structure.getMainTunnelPath().getUnmodifiableUnits());
-    }
-
-    /**
-     * Finds the next TunnelUnit in the given list that is classified as an ore,
-     * starting the search from a specified index.
-     *
-     * @param units The list of TunnelUnit objects to search through. Must not be null.
-     * @param startIndex The index in the list to start searching from. The search will begin
-     *                   at startIndex + 1 and proceed to the end of the list.
-     * @return The next TunnelUnit that is classified as an ore if found, otherwise null.
-     */
-    private static TunnelUnit findNextOreUnit(@NotNull List<TunnelUnit> units, int startIndex) {
-        for (int i = startIndex + 1; i < units.size(); i++)
-            if (units.get(i).isOre())
-                return units.get(i);
-        return null;
-    }
-
     /**
      * Calculates the change in direction between three consecutive TunnelUnits using their coordinates.
      * The calculation is based on the angles formed between the vectors of the start-to-middle
@@ -260,43 +229,41 @@ public final class Utils {
      * to a range of 0 to 1, where 1 indicates a perfectly straight path (no direction change),
      * and 0 indicates maximum direction changes (PI radians).
      *
-     * @param units the list of TunnelUnit objects representing the path in the tunnel.
-     *              Each TunnelUnit denotes a segment of the tunnel. Units with ores are
-     *              taken into consideration for computing direction changes.
-     *              Must not be null.
-     *
+     * @param path the path to analyze. Must not be null.
      * @return a double value representing the path's straightness, normalized between 0 and 1.
-     *         Specific error codes are returned as:
-     *         - {@code TUNNEL_TOO_SMALL.errorNumber} if the list size is less than 3.
-     *         - {@code NO_ORES.errorNumber} if no TunnelUnit containing ore is found.
-     *         - {@code ONLY_ONE_ORE.errorNumber} if only one TunnelUnit containing ore is found.
+     * Specific error codes are returned as:
+     * - {@code TUNNEL_TOO_SMALL.errorNumber} if the list size is less than 3.
+     * - {@code NO_ORES.errorNumber} if no TunnelUnit containing ore is found.
+     * - {@code ONLY_ONE_ORE.errorNumber} if only one TunnelUnit containing ore is found.
      */
-    public static double computePathStraightness(@NotNull List<TunnelUnit> units) {
-        if (units.size() < 3) return ErrorComputeReturnCode.TUNNEL_TOO_SMALL.errorNumber;
+    public static double computePathStraightness(@NotNull TunnelPath path) {
+        if (path.unitsSize() < 3) return ErrorComputeReturnCode.TUNNEL_TOO_SMALL.errorNumber;
 
         final List<Double> directionChanges = new ArrayList<>();
-        TunnelUnit current = null;
 
-        // Find the first ore unit
-        for (final TunnelUnit unit : units) {
-            if (unit.isOre()) {
-                current = unit;
-                break;
-            }
-        }
+        if (path.getOreVeins().isEmpty()) return ErrorComputeReturnCode.NO_ORES.errorNumber;
 
-        if (current == null) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+        OreVein currentVein = path.getOreVeins().getFirst();
+        int index = 1;
 
-        // Analyze direction changes between sequences of three ore units
+        // Analyze direction changes between sequences of three ore veins
         while (true) {
-            final TunnelUnit next = findNextOreUnit(units, units.indexOf(current));
-            if (next == null) break;
 
-            final TunnelUnit afterNext = findNextOreUnit(units, units.indexOf(next));
-            if (afterNext == null) break;
+            if (index >= path.getOreVeins().size()) break;
 
-            directionChanges.add(calculateDirectionChange(current, next, afterNext));
-            current = next;
+            final OreVein nextVein = path.getOreVeins().get(index + 1);  // findNextOreVein(units, currentVein);
+
+            if (index + 1 >= path.getOreVeins().size()) break;
+
+            final OreVein afterNextVein = path.getOreVeins().get(index + 2);
+
+            ++index;
+
+            directionChanges.add(calculateDirectionChange(
+                    currentVein.units().getFirst(),
+                    nextVein.units().getFirst(),
+                    afterNextVein.units().getFirst()));
+            currentVein = nextVein;
         }
 
         if (directionChanges.isEmpty()) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
@@ -410,25 +377,19 @@ public final class Utils {
      *         Returns 0.0 if fewer than two diamond ores are found.
      */
     private static double calculateTimePatternScore(@NotNull TunnelStructure structure) {
-        final List<Long> diamondTimes = new ArrayList<>();
-
-        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnmodifiableUnits()) {
-            if (unit.getMaterial() == Material.DIAMOND_ORE ||
-                    unit.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE) {
-                diamondTimes.add(unit.getMinedAt());
-            }
-        }
+        final List<Long> diamondTimes = structure.getMainTunnelPath().getUnmodifiableUnits().stream()
+                .filter(u -> u.getMaterial() == Material.DIAMOND_ORE
+                        || u.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE)
+                .map(TunnelUnit::getMinedAt)
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
 
         if (diamondTimes.isEmpty()) return ErrorComputeReturnCode.NO_ORES.errorNumber;
         if (diamondTimes.size() <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
 
-        Collections.sort(diamondTimes);
-        int suspiciousIntervals = 0;
-        for (int i = 1; i < diamondTimes.size(); i++) {
-            if (diamondTimes.get(i) - diamondTimes.get(i - 1) < SUSPICIOUS_TIME_INTERVAL) {
-                suspiciousIntervals++;
-            }
-        }
+        long suspiciousIntervals = IntStream.range(1, diamondTimes.size())
+                .filter(i -> diamondTimes.get(i) - diamondTimes.get(i - 1) < SUSPICIOUS_TIME_INTERVAL)
+                .count();
 
         return (double) suspiciousIntervals / (diamondTimes.size() - 1);
     }
@@ -444,23 +405,16 @@ public final class Utils {
      *         proportionally lower unexposed ratios.
      */
     private static double calculateExposureScore(@NotNull TunnelStructure structure) {
-        int totalDiamonds = 0;
-        int unexposedDiamonds = 0;
+        List<OreVein> veins = structure.getMainTunnelPath().getOreVeins();
+        int totalVeins = veins.size();
+        int unexposedVeins = (int) veins.stream()
+                .filter(v -> !v.units().getFirst().isExposedToAir())
+                .count();
 
-        for (final TunnelUnit unit : structure.getMainTunnelPath().getUnmodifiableUnits()) {
-            if (unit.getMaterial() == Material.DIAMOND_ORE ||
-                    unit.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE) {
-                totalDiamonds++;
-                if (!unit.isExposedToAir()) {
-                    unexposedDiamonds++;
-                }
-            }
-        }
-
-        if (totalDiamonds == 0) return ErrorComputeReturnCode.NO_ORES.errorNumber;
-        if (totalDiamonds <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
-        double unexposedRatio = (double) unexposedDiamonds / totalDiamonds;
-        return unexposedRatio >= SUSPICIOUS_UNEXPOSED_RATIO ? 1.0 :
+        if (totalVeins == 0) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+        if (totalVeins <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
+        double unexposedRatio = (double) unexposedVeins / totalVeins;
+        return unexposedRatio >= SUSPICIOUS_UNEXPOSED_RATIO ? 1.00 :
                 unexposedRatio / SUSPICIOUS_UNEXPOSED_RATIO;
     }
 
@@ -473,8 +427,32 @@ public final class Utils {
      *         while a score closer to 0 indicates a less straight path.
      */
     private static double calculatePathScore(@NotNull TunnelStructure structure) {
-        double straightness = computePathStraightness(structure);
+        double straightness = computePathStraightness(structure.getMainTunnelPath());
         return straightness >= SUSPICIOUS_PATH_STRAIGHTNESS ? 1.0 : straightness / SUSPICIOUS_PATH_STRAIGHTNESS;
+    }
+
+    /**
+     * Calculates the average Manhattan distance between adjacent ore veins
+     * in the main tunnel path of the given structure.
+     *
+     * @param structure the TunnelStructure object containing the main tunnel path and ore veins;
+     *                  must not be null
+     * @return the average Manhattan distance between ore veins as a double,
+     *         or a special error code defined in ErrorComputeReturnCode if the conditions
+     *         for computation are not met (e.g., no ores or only one ore vein present)
+     */
+    public static double averageOreDistance(@NotNull TunnelStructure structure) {
+        final List<OreVein> veins = structure.getMainTunnelPath().getOreVeins();
+
+        if (veins.isEmpty()) return ErrorComputeReturnCode.NO_ORES.errorNumber;
+        if (veins.size() <= 2) return ErrorComputeReturnCode.ONLY_ONE_ORE.errorNumber;
+
+        return IntStream.range(1, veins.size())
+                .mapToDouble(i -> manhattanDistance2D(
+                        veins.get(i).units().getFirst(),
+                        veins.get(i - 1).units().getFirst()))
+                .average()
+                .orElse(0.0);
     }
 
     /**
@@ -492,9 +470,8 @@ public final class Utils {
     public static boolean isTunnelMiningExposedOreVein(@NotNull TunnelStructure structure) {
         TunnelPath tunnelPath = structure.getMainTunnelPath();
         int size = tunnelPath.unitsSize();
-        int ores = tunnelPath.oreSize();
         int oresAndExposed = tunnelPath.oreAndExposed();
-        return size <= 10 && (double) oresAndExposed / size >= 0.6f;
+        return size <= 10 && (double) oresAndExposed / size >= 0.50f;
     }
 
     /**
@@ -514,21 +491,25 @@ public final class Utils {
             return ErrorComputeReturnCode.NOT_ENOUGH_DATA.errorNumber;
         }
 
-        long currentTime = System.currentTimeMillis();
-        final List<Double> recentScores = new ArrayList<>();
-        final List<Double> historicalScores = new ArrayList<>();
+        final long currentTime = System.currentTimeMillis();
 
-        // Categorize and calculate scores for each tunnel
-        for (final TunnelStructure tunnel : tunnels) {
-            double score = calculateXRaySuspicionScore(tunnel, plugin);
-            if (score < 0) continue; // Skip invalid scores
+        // Calculate scores and partition by recency using streams
+        final Map<Boolean, List<Double>> scoresByRecency = tunnels.stream()
+                .map(tunnel -> new AbstractMap.SimpleEntry<>(
+                        tunnel,
+                        calculateXRaySuspicionScore(tunnel, plugin)
+                ))
+                .filter(entry -> entry.getValue() >= 0) // Skip invalid scores
+                .collect(Collectors.partitioningBy(
+                        entry -> currentTime - entry.getKey().getMainTunnelPath().getFirstUnit().getMinedAt() < RECENT_TUNNEL_THRESHOLD,
+                        Collectors.mapping(
+                                AbstractMap.SimpleEntry::getValue,
+                                Collectors.toList()
+                        )
+                ));
 
-            if (currentTime - tunnel.getMainTunnelPath().getFirstUnit().getMinedAt() < RECENT_TUNNEL_THRESHOLD) {
-                recentScores.add(score);
-            } else {
-                historicalScores.add(score);
-            }
-        }
+        final List<Double> recentScores = scoresByRecency.get(true);
+        final List<Double> historicalScores = scoresByRecency.get(false);
 
         // Calculate weighted average of recent and historical scores
         double recentAverage = recentScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
