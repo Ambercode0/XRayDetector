@@ -21,14 +21,8 @@ package com.ambercode.analysis;
 import com.ambercode.XRayDetector;
 import com.ambercode.config.StandardConfig;
 import com.ambercode.data.Miner;
-import com.ambercode.utils.Utils;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.Sound;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.HashSet;
-import java.util.UUID;
 
 final class PeriodicAnalysisTask implements Runnable {
 
@@ -42,82 +36,16 @@ final class PeriodicAnalysisTask implements Runnable {
 
     @Override
     public void run() {
-        // running every X minutes (see config.yml)
-        for (final Miner miner : xRayDetector.getPlayerDataManager().getMiners()) {
-            final double sus = Utils.calculateOverallMinerSuspicionScore(miner, xRayDetector);
-            miner.setSuspicionScore(sus);
-            if (conf.isAnalysisAutoPunishEnabled() && conf.getAnalysisAutoPunishThreshold() <= sus)
-                applyPunishment(miner);
-            if (conf.getAnalysisSuspectsGuiChatWarnAdministrators() && conf.getAnalysisSuspectsGuiAddThreshold() <= sus)
-                warnAdminsOfSuspect(miner);
-        }
+
     }
 
     private void warnAdminsOfSuspect(@NotNull Miner miner) {
         Bukkit.getOnlinePlayers().stream()
-                .filter(p -> p.hasPermission("xraydetector.notifications"))
-                .forEach(p -> {
-
-                    UUID uuid = miner.getUuid();
-                    OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
-
-                    if (!op.hasPlayedBefore()) {
-                        xRayDetector.getLogger().warning("ERROR: Player " + op.getName() + "(" + uuid + ") has not played before, skipping warning.");
-                        return;
-                    }
-
-                    String username = op.getName();
-                    assert username != null;
-
-                    p.sendMessage("§8§l[§c§lX-RAY DETECTOR§8§l]");
-                    p.sendMessage("§7Suspect: §c" + username);
-                    p.sendMessage("§7Suspicion Score: §c" + String.format("%.2f", miner.getSuspicionScore()) + "§8/§c1.00");
-                    p.sendMessage("§7Mined Blocks: §f" + miner.getMinedBlocks());
-                    p.sendMessage("§7Ore Veins Found: §f" + miner.getDiscoveredOreVeins());
-                    p.playSound(p.getLocation(), Sound.BLOCK_BELL_RESONATE, 1.0f, .85f);
-                });
+                .filter(p -> p.hasPermission("xraydetector.admin"))
+                .forEach(p -> {});
     }
 
-    /**
-     * Applies a predefined punishment to a miner based on their suspicion score and configuration settings.
-     * This method handles determining punishment eligibility and dispatches the appropriate punishment command.
-     * If no punishment can be applied due to missing configurations or conditions, the method logs warnings.
-     *
-     * @param miner the {@link Miner} instance representing the player to whom the punishment may be applied;
-     *              must not be null.
-     */
-    private void applyPunishment(@NotNull Miner miner) {
-        UUID uuid = miner.getUuid();
-        OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
+    private void applyPunishment() {
 
-        if (!op.hasPlayedBefore()) {
-            xRayDetector.getLogger().warning("ERROR: Player " + op.getName() + "(" + uuid + ") has not played before, skipping punishment.");
-            return;
-        }
-
-        String username = op.getName();
-        assert username != null;
-
-        String reason = conf.getAnalysisAutoPunishReason();
-        if (reason == null) {
-            xRayDetector.getLogger().warning("WARNING: No reason configured for automatic punishment, skipping punishment.");
-            return;
-        }
-
-        String logMsg = "Applying automatic punishment to " + username + " (" + uuid + ") for suspicion score " + miner.getSuspicionScore() + " (" + reason + ")";
-        xRayDetector.getLogger().info(logMsg);
-        xRayDetector.getFileLogger().addLogMessage(logMsg);
-
-        String command = conf.getAnalysisAutoPunishCommand();
-        if (command == null) {
-            xRayDetector.getLogger().warning("WARNING: No command configured for automatic punishment, skipping punishment.");
-            return;
-        }
-
-        xRayDetector.getServer().dispatchCommand(xRayDetector.getServer().getConsoleSender(), conf.getAnalysisAutoPunishCommand()
-                .replace("%player%", username)
-                .replace("%reason%", reason));
-
-        xRayDetector.getPlayerDataManager().removeMiner(uuid);
     }
 }

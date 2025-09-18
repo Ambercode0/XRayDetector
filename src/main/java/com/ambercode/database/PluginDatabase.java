@@ -19,15 +19,10 @@
 package com.ambercode.database;
 
 import com.ambercode.data.*;
-import org.bukkit.Material;
-import org.bukkit.material.MaterialData;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.UUID;
 
 public interface PluginDatabase {
 
@@ -67,31 +62,5 @@ public interface PluginDatabase {
             exception.printStackTrace();
         }
     }
-
-    @NotNull
-    List<Miner> getAllData();
-
-    void insertTunnelUnit(@NotNull TunnelUnit tunnelUnit, @NotNull TunnelPath tunnelPath);
-
-    void insertTunnelPath(@NotNull TunnelPath tunnelPath, @NotNull TunnelStructure tunnelStructure);
-
-    void insertTunnelStructure(@NotNull TunnelStructure tunnelStructure, @NotNull Miner miner);
-
-    void insertMiner(@NotNull Miner miner);
-
-    void insertOreVein(@NotNull OreVein oreVein, @NotNull TunnelPath tunnelPath);
-
-    void updateTunnelUnitMaterial(@NotNull TunnelUnit tunnelUnit, @NotNull String newMaterial);
-
-    void updateTunnelUnitOreVein(@NotNull TunnelUnit tunnelUnit, @NotNull OreVein oreVein);
-
-    void mergeStructures(@NotNull UUID minerUuid,
-                         @NotNull TunnelStructure newMergedStructure,
-                         @NotNull TunnelUnit newTunnelUnit,
-                         @NotNull List<TunnelStructure> oldStructures);
-
-    boolean deleteMinerData(@NotNull UUID minerUuid);
-
-    boolean deleteTunnelStructureData(@NotNull UUID stuctureUuid);
 
 }

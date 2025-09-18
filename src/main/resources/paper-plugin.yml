@@ -1,0 +1,6 @@
+name: XRayDetector
+version: '1.0.0-SNAPSHOT'
+main: com.ambercode.XRayDetector
+api-version: '1.20'
+authors: [ Ambercode ]
+description: 'A PaperMC plugin for advanced X-Ray detection and analysis'

@@ -1,123 +1,136 @@
-/*
- *     XRayDetector - An advanced automatic detector to prevent X-Ray in your server
- *     Copyright (C) 2025 'AmberCode'
- *
- *     This program is free software: you can redistribute it and/or modify
- *     it under the terms of the GNU General Public License as published by
- *     the Free Software Foundation, either version 3 of the License, or
- *     (at your option) any later version.
- *
- *     This program is distributed in the hope that it will be useful,
- *     but WITHOUT ANY WARRANTY; without even the implied warranty of
- *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *     GNU General Public License for more details.
- *
- *     You should have received a copy of the GNU General Public License
- *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.ambercode.data;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * The Miner class represents a mining entity that creates and tracks tunnel structures.
- * Each miner is associated with a unique identifier (UUID) and maintains a record of created
- * tunnels, a suspicion score, and metrics related to mining activity.
+ * Per-player state for sliding-window features and aggregates.
+ * This keeps only IDs (not full Unit objects) to reduce memory.
  */
-public class Miner {
+public final class Miner {
+    private static final double EWMA_ALPHA = 0.25; // weight for new interval samples
+    private static final int MIN_ORE_MATERIAL_ID = 1000; // example threshold for ore materials
 
-    private final UUID uuid;
-    private final List<TunnelStructure> createdTunnels = new ArrayList<>();
-    private double suspicionScore = 0.00;
+    public final UUID playerId;
+    // time-ordered deque of recent unit IDs (trim by time or size)
+    private final Deque<Integer> recentUnitIds = new ConcurrentLinkedDeque<>();
+    // material counts for quick density calculations
+    private final Map<Integer, Integer> materialCounts = new HashMap<>();
+    private final AtomicInteger totalBlocks = new AtomicInteger(0);
+    private volatile long lastUpdateMs = System.currentTimeMillis();
 
-    public Miner(@NotNull UUID uuid) {
-        this.uuid = uuid;
+    // derived features cached for quick scoring
+    volatile double lastOreIntervalMs = Double.NaN; // average/median candidate
+    volatile long lastOreTimestamp = -1L;
+    volatile int oresMined = 0;
+    volatile int exposedOres = 0;
+
+    public Miner(UUID playerId) {
+        this.playerId = playerId;
     }
 
     /**
-     * Retrieves a {@link TunnelStructure} from the list of created tunnels that matches the specified UUID.
-     *
-     * @param uuid the unique identifier of the tunnel structure to be retrieved; must not be null.
-     * @return the {@link TunnelStructure} with the specified UUID if found, or {@code null} if no matching structure exists.
+     * Record a newly mined unit (id) with material and whether it was exposed.
+     * This method is designed to be cheap; trimming performed by caller or periodic task.
      */
-    @Nullable
-    public TunnelStructure getTunnelStructure(@NotNull UUID uuid) {
-      // return createdTunnels.stream().filter(t -> t.getUuid().equals(uuid)).findAny().orElse(null);
-        for (final TunnelStructure structure : createdTunnels)
-            if (structure.getUuid().equals(uuid))
-                return structure;
-        return null;
+    public void recordUnit(int unitId, int materialId, boolean isOre, boolean exposed, long minedAt) {
+        recentUnitIds.addLast(unitId);
+        totalBlocks.incrementAndGet();
+        materialCounts.merge(materialId, 1, Integer::sum);
+        if (isOre) {
+            updateOreStats(exposed, minedAt);
+        }
+        lastUpdateMs = System.currentTimeMillis();
     }
 
-    /**
-     * Retrieves the universally unique identifier (UUID) associated with this instance.
-     *
-     * @return a non-null UUID representing the unique identity of this instance.
-     */
-    @NotNull
-    public UUID getUuid() {
-        return uuid;
+    public double getOreDensity() {
+        int total = totalBlocks.get();
+        if (total == 0) return 0.0;
+        return oresMined / (double) total;
     }
 
-    /**
-     * Retrieves the list of created tunnel structures associated with this instance.
-     *
-     * @return a non-null list of {@code TunnelStructure} objects representing the tunnels
-     *         created and tracked by this instance.
-     */
-    @NotNull
-    public List<TunnelStructure> getCreatedTunnels() {
-        return createdTunnels;
+    // Prefer this clearer name; keep old accessor for compatibility.
+    public double getExposureRate() {
+        int ores = oresMined;
+        if (ores == 0) return 1.0; // if none ores, consider as non-suspicious for exposure
+        return exposedOres / (double) ores;
     }
 
-    /**
-     * Retrieves the suspicion score associated with this entity.
-     * The suspicion score is an indicator that quantifies the potential for suspicious activity.
-     *
-     * @return the suspicion score as a double value.
-     */
-    public double getSuspicionScore() {
-        return suspicionScore;
+    // ... existing code ...
+    public double getExposedRate() {
+        return getExposureRate();
     }
 
-    /**
-     * Returns the number of ore veins discovered by the miner.
-     *
-     * @return the number of ore veins discovered as an integer.
-     */
-    public int getDiscoveredOreVeins() {
-        int counter = 0;
-        for (final TunnelStructure structure : createdTunnels)
-            counter += structure.getMainTunnelPath().veinsSize();
-        return counter;
+    public int getTotalBlocks() {
+        return totalBlocks.get();
     }
 
-    /**
-     * Retrieves the total number of blocks mined by the miner.
-     *
-     * @return the number of blocks mined as an integer.
-     */
-    public int getMinedBlocks() {
-        int counter = 0;
-        for (final TunnelStructure createdTunnel : getCreatedTunnels())
-            counter += createdTunnel.getMainTunnelPath().unitsSize();
-        return counter;
+    public void trimOlderThan(long cutoffMs, Registry registry) {
+        // Remove units older than cutoff (simple approach: pop from left while older)
+        while (!recentUnitIds.isEmpty()) {
+            final Integer id = recentUnitIds.peekFirst();
+            if (id == null) break;
+            TunnelUnit u = registry.getUnit(id);
+            if (u == null) {
+                recentUnitIds.removeFirst();
+                continue;
+            }
+            if (u.minedAt < cutoffMs) {
+                recentUnitIds.removeFirst();
+                decrementCountsFor(u);
+            } else break;
+        }
     }
 
+    public double getLastOreIntervalMs() {
+        return lastOreIntervalMs;
+    }
 
-    /**
-     * Sets the suspicion score for this miner. The suspicion score is a measure
-     * of potentially suspicious activity associated with the miner.
-     *
-     * @param suspicionScore the new suspicion score, represented as a double value
-     */
-    public void setSuspicionScore(double suspicionScore) {
-        this.suspicionScore = suspicionScore;
+    private static boolean isNullOrNonPositive(Integer v) {
+        return v == null || v <= 0;
+    }
+
+    public Deque<Integer> getRecentUnitIds() {
+        return recentUnitIds;
+    }
+
+    // Example helper; replace it with your plugin's ore ID set.
+    public boolean isOreMaterial(int materialId) {
+        return materialId >= MIN_ORE_MATERIAL_ID;
+    }
+
+    // ------- Extracted helpers for clarity and reuse -------
+
+    private void updateOreStats(boolean exposed, long minedAt) {
+        oresMined++;
+        if (exposed) exposedOres++;
+        if (lastOreTimestamp > 0) {
+            long interval = minedAt - lastOreTimestamp;
+            lastOreIntervalMs = computeEwma(lastOreIntervalMs, interval, EWMA_ALPHA);
+        }
+        lastOreTimestamp = minedAt;
+    }
+
+    private static double computeEwma(double current, long sample, double alpha) {
+        double s = (double) sample;
+        if (Double.isNaN(current)) {
+            return s;
+        }
+        // EWMA: new = (1 - alpha) * current + alpha * sample
+        return (1.0d - alpha) * current + alpha * s;
+    }
+
+    private void decrementCountsFor(TunnelUnit u) {
+        totalBlocks.decrementAndGet();
+        materialCounts.merge(u.materialId, -1, Integer::sum);
+        if (isNullOrNonPositive(materialCounts.get(u.materialId))) materialCounts.remove(u.materialId);
+        if (isOreMaterial(u.materialId)) {
+            oresMined = Math.max(0, oresMined - 1);
+            if (u.isExposedToAir) exposedOres = Math.max(0, exposedOres - 1);
+        }
     }
 }
