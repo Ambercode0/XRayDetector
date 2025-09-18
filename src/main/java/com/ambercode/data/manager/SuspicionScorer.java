@@ -22,8 +22,8 @@ public final class SuspicionScorer {
 
     // Normalization parameters
     private static final double EXPOSURE_SUSPICIOUS_THRESHOLD = 0.60; // treat <60% exposure as suspicious
-    private static final double ORE_DENSITY_BASELINE = 0.02;          // 2%
-    private static final double ORE_DENSITY_SUSPICIOUS = 0.10;        // 10%
+    private static final double ORE_DENSITY_BASELINE = 0.0125;          // 2%
+    private static final double ORE_DENSITY_SUSPICIOUS = 0.0875;        // 8,75%
     private static final double INTERVAL_FAST_SECONDS = 5.0;          // 5s -> 1.0
     private static final double INTERVAL_SLOW_SECONDS = 60.0;         // 60s -> 0.0
     private static final int VEIN_COVERAGE_SAMPLE_SIZE = 40;
@@ -36,8 +36,8 @@ public final class SuspicionScorer {
     }
 
     /**
-     * Compute a score for a miner in the recent window represented by Miner object.
-     * This method computes contributions for each feature and returns weighted sum.
+     * Compute a score for a miner in the recent window represented by a Miner object.
+     * This method computes contributions for each feature and returns a weighted sum.
      */
     public double score(Miner miner) {
         double exposureContribution = normalizeExposure(miner.getExposedRate());
@@ -59,8 +59,8 @@ public final class SuspicionScorer {
             player.sendMessage(String.format("§7- Exposure: §f%.2f", exposureContribution));
             player.sendMessage(String.format("§7- Density: §f%.2f", densityContribution));
             player.sendMessage(String.format("§7- Interval: §f%.2f", intervalContribution));
-            player.sendMessage(String.format("§7- Vein Coverage: §f%.2f", veinCoverageContribution));
-            player.sendMessage(String.format("§7- Path: §f%.2f", pathContribution));
+            player.sendMessage(String.format("§7- Vein Coverage: §f%.2f", veinCoverageContribution)); // TODO: implement
+            player.sendMessage(String.format("§7- Path: §f%.2f", pathContribution)); // TODO: implement
             player.sendMessage(String.format("§7- Combined: §f%.2f", combined));
         }
 
@@ -94,11 +94,11 @@ public final class SuspicionScorer {
         int checked = 0;
         double accumCoverage = 0.0;
 
-        final Iterator<Integer> it = miner.getRecentUnitIds().descendingIterator();
+        Iterator<Integer> it = miner.getRecentUnitIds().descendingIterator();
         while (it.hasNext() && checked < VEIN_COVERAGE_SAMPLE_SIZE) {
             TunnelUnit unit = registry.getUnit(it.next());
             if (unit == null) continue;
-            if (!miner.isOreMaterial(unit.materialId)) continue;
+            if (!miner.isCommonOreMaterial(unit.materialId)) continue;
 
             OreVein vein = registry.getVein(unit.veinId);
             if (vein == null) continue;
@@ -117,11 +117,19 @@ public final class SuspicionScorer {
         return clamp01((VEIN_COVERAGE_SUSPICIOUS - avgCoverage) / VEIN_COVERAGE_SUSPICIOUS);
     }
 
+    /**
+     * Counts the number of ore units within a specified vein that were mined by a
+     * specific player, identified by their UUID.
+     *
+     * @param vein the OreVein object representing the vein to analyze
+     * @param playerId the UUID of the miner whose mined units are to be counted
+     * @return the total count of ore units mined by the specified player in the given vein
+     */
     private int countUnitsMinedInVeinByMiner(OreVein vein, UUID playerId) {
         int count = 0;
-        for (ChunkKey chunkKey : vein.getChunks()) {
-            for (int unitId : vein.unitsInChunk(chunkKey)) {
-                TunnelUnit unit = registry.getUnit(unitId);
+        for (final ChunkKey chunkKey : vein.getChunks()) {
+            for (final int unitId : vein.unitsInChunk(chunkKey)) {
+                final TunnelUnit unit = registry.getUnit(unitId);
                 if (unit != null && playerId.equals(unit.minerId)) count++;
             }
         }

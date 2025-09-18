@@ -41,9 +41,22 @@ public final class OreVein {
         lastUpdatedAt = System.currentTimeMillis();
     }
 
+    /**
+     * Retrieves a list of unit IDs associated with the specified chunk key.
+     * If no units are associated with the given chunk, an empty list is returned.
+     *
+     * @param ck the ChunkKey for which to retrieve the associated unit IDs
+     * @return a List of Integer IDs of units associated with the specified chunk, or an empty list if none exist
+     */
     public synchronized List<Integer> unitsInChunk(ChunkKey ck) {
         return unitsByChunk.getOrDefault(ck, Collections.emptyList());
     }
 
+    /**
+     * Retrieves a set of all chunk keys currently associated with their respective unit identifiers in the ore vein.
+     * This method provides a snapshot of the chunks containing ore units at the time of invocation.
+     *
+     * @return a set of ChunkKey objects representing the chunks associated with this ore vein
+     */
     public synchronized Set<ChunkKey> getChunks() { return new HashSet<>(unitsByChunk.keySet()); }
 }

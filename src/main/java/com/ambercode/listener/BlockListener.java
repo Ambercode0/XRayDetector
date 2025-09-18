@@ -69,7 +69,7 @@ public final class BlockListener implements Listener {
 
     private static boolean isOreMaterial(int materialId) {
         Material material = Material.values()[materialId];
-        return material.name().contains("ORE");
+        return material.name().endsWith("DIAMOND_ORE");
     }
 
     private static boolean quickExposureCheck(@NotNull Block block) {

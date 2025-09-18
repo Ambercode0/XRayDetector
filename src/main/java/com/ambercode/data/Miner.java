@@ -1,5 +1,7 @@
 package com.ambercode.data;
 
+import org.bukkit.Material;
+
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This keeps only IDs (not full Unit objects) to reduce memory.
  */
 public final class Miner {
-    private static final double EWMA_ALPHA = 0.25; // weight for new interval samples
+    private static final double EWMA_ALPHA = 0.250; // weight for new interval samples
     private static final int MIN_ORE_MATERIAL_ID = 1000; // example threshold for ore materials
 
     public final UUID playerId;
@@ -99,8 +101,18 @@ public final class Miner {
     }
 
     // Example helper; replace it with your plugin's ore ID set.
-    public boolean isOreMaterial(int materialId) {
-        return materialId >= MIN_ORE_MATERIAL_ID;
+    public boolean isPreciousOreMaterial(int materialId) {
+        return materialId == Material.DIAMOND_ORE.ordinal() || materialId == Material.DEEPSLATE_DIAMOND_ORE.ordinal()
+                || materialId == Material.ANCIENT_DEBRIS.ordinal();
+    }
+
+    public boolean isCommonOreMaterial(int materialId) {
+        return materialId == Material.COAL_ORE.ordinal()                || materialId == Material.IRON_ORE.ordinal()
+                || materialId == Material.GOLD_ORE.ordinal()            || materialId == Material.REDSTONE_ORE.ordinal()
+                || materialId == Material.LAPIS_ORE.ordinal()           || materialId == Material.COPPER_ORE.ordinal()
+                || materialId == Material.DEEPSLATE_COAL_ORE.ordinal()  || materialId == Material.DEEPSLATE_IRON_ORE.ordinal()
+                || materialId == Material.DEEPSLATE_GOLD_ORE.ordinal()  || materialId == Material.DEEPSLATE_REDSTONE_ORE.ordinal()
+                || materialId == Material.DEEPSLATE_LAPIS_ORE.ordinal() || materialId == Material.DEEPSLATE_COPPER_ORE.ordinal();
     }
 
     // ------- Extracted helpers for clarity and reuse -------
@@ -128,7 +140,7 @@ public final class Miner {
         totalBlocks.decrementAndGet();
         materialCounts.merge(u.materialId, -1, Integer::sum);
         if (isNullOrNonPositive(materialCounts.get(u.materialId))) materialCounts.remove(u.materialId);
-        if (isOreMaterial(u.materialId)) {
+        if (isPreciousOreMaterial(u.materialId)) {
             oresMined = Math.max(0, oresMined - 1);
             if (u.isExposedToAir) exposedOres = Math.max(0, exposedOres - 1);
         }
