@@ -1,10 +1,8 @@
 package com.ambercode.listener;
 
 import com.ambercode.XRayDetector;
-import com.ambercode.data.Miner;
-import com.ambercode.data.PackedBlockPos;
-import com.ambercode.data.TunnelUnit;
-import com.ambercode.data.Registry;
+import com.ambercode.data.*;
+import com.ambercode.data.manager.GlobalManager;
 import com.ambercode.data.manager.SuspicionScorer;
 import com.ambercode.data.manager.VeinManager;
 import com.ambercode.database.PluginDatabase;
@@ -18,67 +16,57 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Deque;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static com.ambercode.data.IdGenerator.UNIT_ID_GEN;
 
 public final class BlockListener implements Listener {
-    
+
     private final XRayDetector xRayDetector;
-    private final Registry registry;
     private final SuspicionScorer suspicionScorer;
     private final VeinManager veinManager;
     private final PluginDatabase database;
+    private final GlobalManager gm;
 
     public BlockListener(@NotNull XRayDetector xRayDetector) {
         this.xRayDetector = xRayDetector;
-        this.registry = new Registry();
         this.database = new SQLiteDatabase(xRayDetector);
-        this.suspicionScorer = new SuspicionScorer(registry);
-        this.veinManager = new VeinManager(registry);
+        this.suspicionScorer = new SuspicionScorer();
+        this.veinManager = new VeinManager();
+        this.gm = new GlobalManager();
+        // debug();
     }
-
     @EventHandler
     public void onBlockBreak(@NotNull BlockBreakEvent e) {
         if (e.isCancelled()) return;
         UUID playerUuid = e.getPlayer().getUniqueId();
         Block b = e.getBlock();
-        int matId = mapMaterial(b.getType());
         int x = b.getX();
         int y = b.getY();
         int z = b.getZ();
-        PackedBlockPos pos = PackedBlockPos.of(x, y, z);
-        boolean isExposed = quickExposureCheck(b);
-        int uId = UNIT_ID_GEN.next();
-        TunnelUnit tu = new TunnelUnit(uId, pos, matId, System.currentTimeMillis(), playerUuid, isExposed);
-        registry.putUnit(uId, tu);
-        Miner m = registry.getOrCreateMiner(playerUuid);
-        m.recordUnit(uId, matId, m.isPreciousOreMaterial(matId), isExposed, tu.minedAt);
 
-        if (m.isPreciousOreMaterial(matId) || m.isCommonOreMaterial(matId)) {
-            veinManager.
-        }
+        TunnelUnit unit = new TunnelUnit(x, y, z, b.getType(), b.isBlockPowered(), System.currentTimeMillis());
+        Miner miner = gm.getOrInsertMiner(playerUuid);
+        miner.addUnit(unit);
 
-        if (m.isPreciousOreMaterial(matId)) {
-            double suspicionScore = suspicionScorer.score(m);
-            if (suspicionScore > xRayDetector.getStandardConfig().getAnalysisSuspectsGuiAddThreshold()) {
-                xRayDetector.getServer().getPluginManager().callEvent(new PlayerFlaggedEvent(e.getPlayer(), suspicionScore));
-            }
+        if (Utils.isPreciousOre(unit.getMaterial())) {
+            handlePreciousOre(miner, b, unit);
         }
     }
 
-    private static int mapMaterial(@NotNull Material material) {
-        return material.ordinal();
-    }
+    private void handlePreciousOre(@NotNull Miner miner, @NotNull Block block, @NotNull TunnelUnit unit) {
+        Deque<OreVein> minerVeins = miner.getVeinQueue();
 
-    private static boolean quickExposureCheck(@NotNull Block block) {
-        final BlockFace[] faces = {BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
-        for (BlockFace face : faces) {
-            if (block.getRelative(face).getType() == Material.AIR) {
-                return true;
-            }
+        if (minerVeins.isEmpty()) {
+            OreVein vein = new OreVein(unit.getMaterial());
+            Utils.getAllOreVeinUnits(block, unit.isExposed()).forEach(vein::addTunnelUnit);
+            minerVeins.addLast(vein);
+        } else {
+
         }
-        return false;
     }
 
 }

@@ -1,34 +1,59 @@
 package com.ambercode.data;
 
+import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
+import java.util.Objects;
 
-/**
- * Immutable, compact representation of a mined block event.
- */
 public final class TunnelUnit {
-    public final int id; // compact id
-    public final PackedBlockPos pos;
-    public final int materialId; // plugin-specific material encoding (small int)
-    public final long minedAt; // epoch millis
-    public final UUID minerId; // player UUID, who mined it
-    public volatile int veinId; // set after association (0 = none)
-    public volatile int structureId; // 0 = none
-    public final boolean isExposedToAir; // computed at insertion time when cheap
 
-    public TunnelUnit(int id, @NotNull PackedBlockPos pos, int materialId, long minedAt, @NotNull UUID minerId, boolean exposed) {
-        this.id = id;
-        this.pos = pos;
-        this.materialId = materialId;
+    private final int x,y,z;
+    private final Material material;
+    private final boolean isExposed;
+    private final long minedAt;
+
+    public TunnelUnit(int x, int y, int z, @NotNull Material material, boolean isExposed, long minedAt) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.material = material;
+        this.isExposed = isExposed;
         this.minedAt = minedAt;
-        this.minerId = minerId;
-        this.veinId = 0;
-        this.structureId = 0;
-        this.isExposedToAir = exposed;
     }
 
-    public String toShortString() {
-        return "TU#" + id + "@" + pos + " m=" + materialId + " t=" + minedAt + (isExposedToAir?" exposed":"");
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public int getZ() {
+        return z;
+    }
+
+    @NotNull
+    public Material getMaterial() {
+        return material;
+    }
+
+    public boolean isExposed() {
+        return isExposed;
+    }
+
+    public long getMinedAt() {
+        return minedAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof TunnelUnit that)) return false;
+        return x == that.x && y == that.y && z == that.z && isExposed == that.isExposed && material == that.material;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y, z, material, isExposed, minedAt);
     }
 }
