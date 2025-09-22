@@ -53,9 +53,13 @@ public final class BlockListener implements Listener {
         TunnelUnit tu = new TunnelUnit(uId, pos, matId, System.currentTimeMillis(), playerUuid, isExposed);
         registry.putUnit(uId, tu);
         Miner m = registry.getOrCreateMiner(playerUuid);
-        m.recordUnit(uId, matId, isOreMaterial(matId), isExposed, tu.minedAt);
+        m.recordUnit(uId, matId, m.isPreciousOreMaterial(matId), isExposed, tu.minedAt);
 
-        if (isOreMaterial(matId)) {
+        if (m.isPreciousOreMaterial(matId) || m.isCommonOreMaterial(matId)) {
+            veinManager.
+        }
+
+        if (m.isPreciousOreMaterial(matId)) {
             double suspicionScore = suspicionScorer.score(m);
             if (suspicionScore > xRayDetector.getStandardConfig().getAnalysisSuspectsGuiAddThreshold()) {
                 xRayDetector.getServer().getPluginManager().callEvent(new PlayerFlaggedEvent(e.getPlayer(), suspicionScore));
@@ -65,11 +69,6 @@ public final class BlockListener implements Listener {
 
     private static int mapMaterial(@NotNull Material material) {
         return material.ordinal();
-    }
-
-    private static boolean isOreMaterial(int materialId) {
-        Material material = Material.values()[materialId];
-        return material.name().endsWith("DIAMOND_ORE");
     }
 
     private static boolean quickExposureCheck(@NotNull Block block) {
