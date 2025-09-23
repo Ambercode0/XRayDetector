@@ -3,7 +3,6 @@ package com.ambercode.data;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Deque;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -30,7 +29,7 @@ public final class Miner {
         return this.tunnelQueue.contains(tunnel);
     }
 
-    public Deque<OreVein> getVeinQueue() {
+    public Deque<OreVein> getVeinDeque() {
         return veinQueue;
     }
 

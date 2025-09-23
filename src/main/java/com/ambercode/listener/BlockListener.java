@@ -7,21 +7,18 @@ import com.ambercode.data.manager.SuspicionScorer;
 import com.ambercode.data.manager.VeinManager;
 import com.ambercode.database.PluginDatabase;
 import com.ambercode.database.SQLiteDatabase;
-import com.ambercode.listener.events.PlayerFlaggedEvent;
-import org.bukkit.Material;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Deque;
-import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static com.ambercode.data.IdGenerator.UNIT_ID_GEN;
 
 public final class BlockListener implements Listener {
 
@@ -43,29 +40,46 @@ public final class BlockListener implements Listener {
     public void onBlockBreak(@NotNull BlockBreakEvent e) {
         if (e.isCancelled()) return;
         UUID playerUuid = e.getPlayer().getUniqueId();
+        Player p = e.getPlayer();
         Block b = e.getBlock();
         int x = b.getX();
         int y = b.getY();
         int z = b.getZ();
 
-        TunnelUnit unit = new TunnelUnit(x, y, z, b.getType(), b.isBlockPowered(), System.currentTimeMillis());
         Miner miner = gm.getOrInsertMiner(playerUuid);
+        TunnelUnit unit = new TunnelUnit(x, y, z, b.getType(), Utils.isExposed(b,miner), System.currentTimeMillis());
         miner.addUnit(unit);
 
         if (Utils.isPreciousOre(unit.getMaterial())) {
             handlePreciousOre(miner, b, unit);
         }
+
+        double score = SuspicionScorer.computeTimeIntervalScore(miner);
+        p.sendActionBar(Component.text(String.format("Your Interval Score : %.3f", score)));
     }
 
-    private void handlePreciousOre(@NotNull Miner miner, @NotNull Block block, @NotNull TunnelUnit unit) {
-        Deque<OreVein> minerVeins = miner.getVeinQueue();
+    private static void handlePreciousOre(@NotNull Miner miner, @NotNull Block block, @NotNull TunnelUnit unit) {
+        Deque<OreVein> minerVeins = miner.getVeinDeque();
+        Set<TunnelUnit> foundAdjacent = Utils.getAllOreVeinUnits(block, miner);
 
-        if (minerVeins.isEmpty()) {
+        if (minerVeins.isEmpty()) { // no previous veins found
             OreVein vein = new OreVein(unit.getMaterial());
-            Utils.getAllOreVeinUnits(block, unit.isExposed()).forEach(vein::addTunnelUnit);
+            foundAdjacent.forEach(vein::addTunnelUnit);
             minerVeins.addLast(vein);
-        } else {
+        } else { // veins found
+            boolean found = false;
+            for (OreVein vein : minerVeins) { // checking if a vein contains unit, true ignore, false create vein
+                if (vein.getTunnelUnits().contains(unit)) {
+                    found = true;
+                    break;
+                }
+            }
 
+            if (!found) { // no vein contains unit, create new vein
+                OreVein newVein = new OreVein(unit.getMaterial());
+                foundAdjacent.forEach(newVein::addTunnelUnit);
+                minerVeins.addLast(newVein);
+            }
         }
     }
 

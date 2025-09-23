@@ -23,8 +23,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public interface Utils {
@@ -42,10 +43,10 @@ public interface Utils {
         return Math.abs(unit1.getX() - unit2.getX()) + Math.abs(unit1.getY() - unit2.getY()) + Math.abs(unit1.getZ() - unit2.getZ());
     }
     
-    static Set<TunnelUnit> getAllOreVeinUnits(@NotNull Block block, boolean exposed) {
+    static Set<TunnelUnit> getAllOreVeinUnits(@NotNull Block block, @NotNull Miner miner) {
         HashSet<TunnelUnit> units = new HashSet<>();
         Material material = block.getType();
-        searchOreVein(block, material, units, exposed);
+        searchOreVein(block, material, units, Utils.hasAdjacentAir(block, miner));
         return units;
     }
 
@@ -64,7 +65,43 @@ public interface Utils {
 
     BlockFace[] FACES = new BlockFace[] {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
-    static boolean isAdjacent(Block block, TunnelUnit other) {
+    private static boolean hasAdjacentAir(@NotNull Block block, @NotNull Miner miner) {
+        Deque<TunnelUnit> units = miner.getTunnelQueue();
+        for (BlockFace face : FACES) {
+            Block relative = block.getRelative(face);
+            boolean relativeAirWasMinedBlock = units.stream().anyMatch(tu -> {
+                boolean isSameX = tu.getX() == relative.getX();
+                boolean isSameY = tu.getY() == relative.getY();
+                boolean isSameZ = tu.getZ() == relative.getZ();
+                return isSameX && isSameY && isSameZ;
+            });
+            if (relative.getType() == Material.AIR && !relativeAirWasMinedBlock) return true;
+        }
         return false;
+    }
+
+    static boolean isExposed(@NotNull Block block, @NotNull Miner miner) {
+        Deque<TunnelUnit> units = miner.getTunnelQueue();
+
+        // If no mining history, check if the block has adjacent air
+        if (units.isEmpty()) return hasAdjacentAir(block, miner);
+
+        // Only check exposure for precious ores
+        if (!isPreciousOre(block.getType())) return false;
+
+        Deque<OreVein> veins = miner.getVeinDeque();
+
+        // Check if this block is part of any known vein
+        for (OreVein vein : veins) {
+            List<TunnelUnit> tus = vein.getTunnelUnits();
+            // If a block is in this vein, return the vein's exposed status
+            if (tus.stream().anyMatch(t -> t.isSame(block))) {
+                // The vein is exposed if ANY block in it is exposed
+                return tus.stream().anyMatch(TunnelUnit::isExposed);
+            }
+        }
+
+        // Block not in any known vein yet, check if it has adjacent air
+        return hasAdjacentAir(block, miner);
     }
 }
