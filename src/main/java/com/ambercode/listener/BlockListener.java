@@ -9,6 +9,7 @@ import com.ambercode.database.PluginDatabase;
 import com.ambercode.database.SQLiteDatabase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -54,8 +55,16 @@ public final class BlockListener implements Listener {
             handlePreciousOre(miner, b, unit);
         }
 
-        double score = SuspicionScorer.computeTimeIntervalScore(miner);
-        p.sendActionBar(Component.text(String.format("Your Interval Score : %.3f", score)));
+        double scoreT = SuspicionScorer.computeTimeIntervalScore(miner);
+        double scoreD = SuspicionScorer.computeDensityScore(miner);
+        double scoreD2 = SuspicionScorer.computeDistanceScore(miner);
+
+        p.sendActionBar(Component.text("TimScr: ", TextColor.color(0xA3FFA1))
+                .append(Component.text(String.format("%.3f", scoreT), TextColor.color(0xFFBC6A)))
+                .append(Component.text(" DenScr: ", TextColor.color(0xA3FFA1)))
+                .append(Component.text(String.format("%.3f", scoreD), TextColor.color(0xFF9E7C)))
+                .append(Component.text(" DstScr: ", TextColor.color(0xA3FFA1)))
+                .append(Component.text(String.format("%.3f", scoreD2), TextColor.color(0xFFB1EC))));
     }
 
     private static void handlePreciousOre(@NotNull Miner miner, @NotNull Block block, @NotNull TunnelUnit unit) {

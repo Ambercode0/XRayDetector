@@ -104,4 +104,35 @@ public interface Utils {
         // Block not in any known vein yet, check if it has adjacent air
         return hasAdjacentAir(block, miner);
     }
+
+    static double[] getVeinCenter(@NotNull OreVein vein) {
+        if (vein.getTunnelUnits().isEmpty()) {
+            throw new IllegalArgumentException("Vein blocks set cannot be empty");
+        }
+
+        double sumX = 0, sumY = 0, sumZ = 0;
+        for (TunnelUnit unit : vein.getTunnelUnits()) {
+            sumX += unit.getX();
+            sumY += unit.getY();
+            sumZ += unit.getZ();
+        }
+
+        int size = vein.getTunnelUnits().size();
+        return new double[] {sumX / size, sumY / size, sumZ / size};
+    }
+
+    static double calculateEuclideanDistance(double @NotNull [] vector1, double @NotNull [] vector2) {
+        if (vector1.length != 3 || vector2.length != 3) {
+            throw new IllegalArgumentException("Vectors must have exactly 3 components");
+        }
+
+        double sumOfSquares = 0.0;
+        for (int i = 0; i < 3; i++) {
+            double diff = vector1[i] - vector2[i];
+            sumOfSquares += diff * diff;
+        }
+
+        return Math.sqrt(sumOfSquares);
+    }
+
 }
